@@ -1,30 +1,20 @@
 const express = require('express')
-const axios = require('axios')
 const cors = require('cors')
-const dynamoClient = require('./dynamoClient')
 
 const app = express()
+
+//Import routes
+const stockRoutes = require('./routes/stocks')
+const userRoutes = require('./routes/users')
+const statisticRoutes = require('./routes/statistics')
+const gameRoutes = require('./routes/games')
 
 app.use(cors())
 app.use(express.json())
 
-app.get('/stock', (req, res) => {
-    axios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price')
-        .then(result => res.json(result.data))
-})
-
-app.get('/stock/:symbol', (req, res) => {
-    const params = {
-        Key: {
-            'symbol': req.params.symbol
-        },
-        TableName: 'Stock'
-    }
-
-    dynamoClient.get(params, (err, data) => {
-        if (err) res.send(err)
-        else res.json(data.Item)
-    })
-})
+app.use('/stocks', stockRoutes)
+app.use('/users', userRoutes)
+app.use('/statistics', statisticRoutes)
+app.use('/games', gameRoutes)
 
 module.exports = app
