@@ -1,15 +1,52 @@
 const router = require('express').Router()
+const uuidv1 = require('uuid/v1')
+const AWS = require('aws-sdk')
+const cognito = new AWS.CognitoIdentityServiceProvider()
+
+/*
+    Purpose: This route is used to create
+        a new user
+*/
+router.post('/', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Password: req.body.password,
+        Username: req.body.username,
+        UserAttributes: [{
+            Name: 'email',
+            Value: req.body.email
+        }]
+    }
+
+    cognito.signUp(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+router.put('/:username/verification', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        ConfirmationCode: req.body.confirmation_code,
+        Username: req.params.username
+    }
+
+    cognito.confirmSignUp(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
 
 /*
     Purpose: This route is used to update
         a user's username
 */
-router.put('/:userid/username', (req, res) => {})
+router.put('/:username/username', (req, res) => {})
 
 /*
     Purpose: This route is used to update
         a user's password
 */
-router.put('/:userid/password', (req, res) => {})
+router.put('/:username/password', (req, res) => {})
 
 module.exports = router
