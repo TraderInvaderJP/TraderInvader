@@ -11,7 +11,7 @@ let AWS = require("aws-sdk")
 let awsConfig = {
     "region": "us-west-2",
     "endpoint": "http://dynamodb.us-west-2.amazonaws.com",
-    "accessKeyId": "AKIAJZCQEGVYJ7S7G6XQ", "secretAccessKey": "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"
+    "accessKeyId": process.env.AWS_ACCESS_KEY, "secretAccessKey": process.env.AWS_SECRET_ACCESS_KEY
 }
 
 /* this populates the dynamoDB table with user info */
