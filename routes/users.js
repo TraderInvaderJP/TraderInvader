@@ -8,8 +8,6 @@ const cognito = new AWS.CognitoIdentityServiceProvider()
         a new user
 */
 router.post('/', (req, res) => {
-    let id = uuidv4()
-    console.log(id)
     const params = {
         ClientId: process.env.COGNITO_CLIENT_ID,
         Password: req.body.password,
@@ -17,13 +15,9 @@ router.post('/', (req, res) => {
         UserAttributes: [{
             Name: 'email',
             Value: req.body.email
-        },
-        {
-            Name: 'custom: userid',
-            Value: uuidv4()
         }]
     }
-
+    
     cognito.signUp(params, (err, data) => {
         if (err) res.send(err)
         else res.send(data)

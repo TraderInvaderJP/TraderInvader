@@ -6,15 +6,16 @@ const app = express()
 
 dotenv.config()
 
+/*
 let AWS = require("aws-sdk")
-/*add your accessKey and secrectAccessKey, please don't go crazy adding stuff to dynamoDB, don't want to get charged*/
+//add your accessKey and secrectAccessKey, please don't go crazy adding stuff to dynamoDB, don't want to get charged
 let awsConfig = {
     "region": "us-west-2",
     "endpoint": "http://dynamodb.us-west-2.amazonaws.com",
     "accessKeyId": process.env.AWS_ACCESS_KEY, "secretAccessKey": process.env.AWS_SECRET_ACCESS_KEY
 }
 
-/* this populates the dynamoDB table with user info */
+// this populates the dynamoDB table with user info 
 AWS.config.update(awsConfig);
 let docClient = new AWS.DynamoDB.DocumentClient();
 let addUser = function () {
@@ -36,6 +37,7 @@ let addUser = function () {
 }
 //commented this out so I dont keep adding stuff to dynamoDB
 //addUser();
+*/
 
 //Import routes
 const stockRoutes = require('./routes/stocks')
