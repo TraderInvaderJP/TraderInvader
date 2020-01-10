@@ -105,10 +105,13 @@ router.put('/token', (req, res) => {
             'REFRESH_TOKEN': req.body.refresh_token
         }
     }
-
+    
     cognito.initiateAuth(params, (err, data) => {
+        const { AuthenticationResult } = data
         if (err) res.send(err)
-        else res.send({access_token: data.AccessToken})
+        else res.send({
+            access_token: AuthenticationResult.AccessToken
+        })
     })
 })
 
