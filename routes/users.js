@@ -2,6 +2,7 @@ const router = require('express').Router()
 const uuidv4 = require('uuid/v4')
 const AWS = require('aws-sdk')
 const cognito = new AWS.CognitoIdentityServiceProvider()
+const Request = require('../Request')
 
 /*
     Route: /users
@@ -25,8 +26,18 @@ router.post('/', (req, res) => {
     }
     
     cognito.signUp(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) {
+            res.send({
+                success: false,
+                message: data.message,
+                data: {}
+            })
+        }
+        else res.send({
+            success: true,
+            message: "User Created",
+            data: {}
+        })
     })
 })
 
@@ -49,8 +60,18 @@ router.put('/:username/verification', (req, res) => {
     }
 
     cognito.confirmSignUp(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) {
+            res.send({
+                success: false,
+                message: '',
+                data: {}
+            })
+        }
+        else res.send({
+            success: true,
+            message: "User Verificatied",
+            data: {}
+        })
     })
 })
 
@@ -77,10 +98,20 @@ router.post('/token', (req, res) => {
     }
 
     cognito.initiateAuth(params, (err, data) => {
-        if (err) res.send(err)
+        if (err) {
+            res.send({
+                success: false,
+                message: data.message,
+                data: {}
+            })
+        }
         else {
             const { AuthenticationResult } = data
-            res.send({access_token: AuthenticationResult.AccessToken, refresh_token: AuthenticationResult.RefreshToken})
+            res.send({
+                success: true,
+                message: "Access Token Generated",
+                data: {access_token: AuthenticationResult.AccessToken, refresh_token: AuthenticationResult.RefreshToken}
+            })
         }
     })
 })
@@ -108,9 +139,17 @@ router.put('/token', (req, res) => {
     
     cognito.initiateAuth(params, (err, data) => {
         const { AuthenticationResult } = data
-        if (err) res.send(err)
+        if (err) {
+            res.send({
+                success: false,
+                message: data.message,
+                data: {}
+            })
+        }
         else res.send({
-            access_token: AuthenticationResult.AccessToken
+            success: true,
+            message: 'Access Token Updated',
+            data: { access_token: AuthenticationResult.AccessToken }
         })
     })
 })
@@ -136,8 +175,18 @@ router.get('/:username', (req, res) => {
     }
 
     cognito.getUser(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) {
+            res.send({
+                success: false,
+                message: data.message,
+                data: {}
+            })
+        }
+        else res.send({
+            success: true,
+            message: 'User Info Retrieved',
+            data: data
+        })
     })
 })
 
@@ -174,8 +223,16 @@ router.put('/:username/password', (req, res) => {
     }
 
     cognito.changePassword(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            message: data.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            message: 'Password Updated',
+            data
+        })
     })
 })
 
