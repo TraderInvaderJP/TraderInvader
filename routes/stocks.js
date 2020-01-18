@@ -1,15 +1,6 @@
 const router = require('express').Router()
 const axios = require('axios')
 const dynamoClient = require('../dynamoClient')
-const openMarket = require('https')
-
-/* stock market hours request options */
-const options = {
-    hostname: 'financialmodelingprep.com',
-    port: 443,
-    path: '/api/is-the-market-open?datatype=json',
-    method: 'GET'
-  }
 
 router.get('/', (req, res) => {
     axios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price')
@@ -31,18 +22,9 @@ router.get('/:symbol', (req, res) => {
 })
 
 /* Returns data on whether the stock market is open */
-router.get('/', (req, res) => {
-    const req = openMarket.request(options, (res) => {
-        res.on('data', (d) => {
-          process.stdout.write(d)
-        })
-      })
-      
-      req.on('error', (error) => {
-        console.error(error)
-      })
-      
-      req.end()
+router.get('https://financialmodelingprep.com/api/is-the-market-open?datatype=json', (req, res) => {
+      axios.get('https://financialmodelingprep.com/api/is-the-market-open?datatype=json')
+        .then(result => res.json(result.data))
 })
 
 
