@@ -2,7 +2,6 @@ const router = require('express').Router()
 const uuidv4 = require('uuid/v4')
 const AWS = require('aws-sdk')
 const cognito = new AWS.CognitoIdentityServiceProvider()
-const Request = require('../Request')
 
 /*
     Route: /users
