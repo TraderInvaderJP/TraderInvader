@@ -10,7 +10,9 @@ router.get('/:userid', (req, res) => {})
     Purpose: This route is used to get the portfolio
         for a specific user in a specific game
 */
-router.get('/:gameid/portfolios/:userid', (req, res) => {})
+router.get('/:gameid/portfolios/:userid', (req, res) => {
+
+})
 
 /*
     Purpose: This route is used to get the portfolio
