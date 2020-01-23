@@ -22,9 +22,9 @@ router.get('/:symbol', (req, res) => {
 })
 
 /* Returns data on whether the stock market is open */
-router.get('/status', (req, res) => {
-      axios.get('https://financialmodelingprep.com/api/is-the-market-open?datatype=json')
-        .then(result => res.json(result.data))
+router.get('/market/status', (req, res) => {
+    axios.get('https://financialmodelingprep.com/api/is-the-market-open?datatype=json')
+        .then(result => res.send(result.data))
 })
 
 
