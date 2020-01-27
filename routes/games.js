@@ -13,19 +13,25 @@ router.get('/:userid', (req, res) => {})
 router.get('/:gameid/portfolios/:userid', (req, res) => {
     const params = {
         TableName: 'Portfolio',
-        Item: {
+        Key: {
             username: req.params.userid,
             gameid: req.params.gameid,
-            stocks: []
         }
     }
+
+    dynamoClient.get(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
 })
 
 /*
     Purpose: This route is used to get the portfolio
         values for all players in a specific game
 */
-router.get('/:gameid/portfolios/:userid/players', (req, res) => {})
+router.get('/:gameid/portfolios/:userid/players', (req, res) => {
+    
+})
 
 /*
     Purpose: This route is used to create a new
@@ -45,7 +51,8 @@ router.put('/:gameid/users/:userid', (req, res) => {
         Item: {
             username: req.params.userid,
             gameid: req.params.gameid,
-            stocks: []
+            wallet: req.body.initial_amount,
+            stocks: {}
         }
     }
 
@@ -66,12 +73,37 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
             username: req.params.userid,
             gameid: req.params.gameid
         },
-        UpdateExpression: "SET stocks = list_append(stocks, :i)",
+        UpdateExpression: 'SET stocks.#symbol = ?(:i, wallet = wallet - :i * :j',
+        ExpressionAttributeNames: {
+            "#symbol": req.body.symbol
+        },
         ExpressionAttributeValues: {
-            ':i': [{
-                symbol: req.body.symbol,
-                amount: req.body.amount
-            }]
+            ':i': req.body.count,
+            ':j': req.body.value
+        },
+        ReturnValues: 'ALL_NEW'
+    }
+
+    dynamoClient.update(params, (err, data) => {
+        if(err) res.send(err)
+        else res.send(data)
+    })
+})
+
+router.put('/:gameid/portfolios/:userid/sell', (req, res) => {
+    const params = {
+        TableName: 'Portfolio',
+        Key: {
+            username: req.params.userid,
+            gameid: req.params.gameid
+        },
+        UpdateExpression: "SET stocks.#symbol = :i, wallet = wallet + :i * :j",
+        ExpressionAttributeNames: {
+            "#symbol": req.body.symbol
+        },
+        ExpressionAttributeValues: {
+            ':i': req.body.count,
+            ':j': req.body.value
         },
         ReturnValues: "UPDATED_NEW"
     }
@@ -81,11 +113,5 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
         else res.send(data)
     })
 })
-
-/*
-    Purpose: This route is used to sell a stock from 
-        a specific user's portfolio in a specific game
-*/
-router.put('/:gameid/portfolios/:userid/sell', (req, res) => {})
 
 module.exports = router
