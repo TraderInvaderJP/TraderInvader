@@ -4,7 +4,21 @@ const dynamoClient = require('../dynamoClient')
     Purpose: This route is used to get all games
         for a specific user
 */
-router.get('/:userid', (req, res) => {})
+router.get('/:userid', (req, res) => {
+    const params = {
+        TableName: 'Portfolio',
+        Item: {
+            username: req.params.userid,
+            gameid: [],
+            stocks: []
+        }
+    }
+    
+    dynamoClient.get(params, function(err, data) {
+        if (err) res.send(err);
+        else res.send(data)
+    })
+})
 
 /*
     Purpose: This route is used to get the portfolio
