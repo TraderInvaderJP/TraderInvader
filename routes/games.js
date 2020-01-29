@@ -7,11 +7,12 @@ const dynamoClient = require('../dynamoClient')
 router.get('/:userid', (req, res) => {
     const params = {
         TableName: 'Portfolio',
-        Item: {
-            username: req.params.userid,
-            gameid: [],
-            stocks: []
-        }
+        Key: {
+            'username': req.params.userid
+        },
+        AttributesToGet: [
+            'gameid'
+        ]
     }
     
     dynamoClient.get(params, function(err, data) {
@@ -87,7 +88,7 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
             username: req.params.userid,
             gameid: req.params.gameid
         },
-        UpdateExpression: 'SET stocks.#symbol = ?(:i, wallet = wallet - :i * :j',
+        UpdateExpression: 'SET stocks.#symbol = :i, wallet = wallet - :i * :j',
         ExpressionAttributeNames: {
             "#symbol": req.body.symbol
         },
