@@ -7,18 +7,25 @@ const dynamoClient = require('../dynamoClient')
 router.get('/:userid', (req, res) => {
     const params = {
         TableName: 'Portfolio',
-        Key: {
-            'username': req.params.userid
-        },
         IndexName: 'username-index',
-        AttributesToGet: [
-            'gameid'
-        ]
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': req.params.userid
+        },
+        ProjectionExpression: 'gameid'
     }
     
-    dynamoClient.get(params, function(err, data) {
+    dynamoClient.query(params, function(err, data) {
         if (err) res.send(err);
-        else res.send(data)
+        else {
+            let gameList = data.Items.map(item => item.gameid)
+
+            res.send({
+                success: true,
+                msg: '',
+                data: gameList
+            })
+        }
     })
 })
 
@@ -45,8 +52,25 @@ router.get('/:gameid/portfolios/:userid', (req, res) => {
     Purpose: This route is used to get the portfolio
         values for all players in a specific game
 */
-router.get('/:gameid/portfolios/:userid/players', (req, res) => {
-    
+router.get('/:gameid/portfolios/', (req, res) => {
+    const params = {
+        TableName: 'Portfolio',
+        IndexName: 'gameid-index',
+        KeyConditionExpression: 'gameid = :gameid',
+        ExpressionAttributeValues: {
+            ':gameid': req.params.gameid
+        },
+        ProjectionExpression: 'stocks, username, wallet'
+    }
+
+    dynamoClient.query(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send({
+            success: true,
+            msg: '',
+            data: data.Items
+        })
+    })
 })
 
 /*
