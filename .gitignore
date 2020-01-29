@@ -1,4 +1,5 @@
 /node_modules
-claudia.json
 /public
 .env
+claudia.json
+.eslintrc.json

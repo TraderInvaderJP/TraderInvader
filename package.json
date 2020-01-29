@@ -2,7 +2,7 @@
   "name": "stocksapi",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lambda.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,9 +14,11 @@
     "axios": "^0.19.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "uuid": "^3.3.3"
   },
   "devDependencies": {
+    "eslint": "^6.8.0",
     "nodemon": "^2.0.2"
   }
 }
