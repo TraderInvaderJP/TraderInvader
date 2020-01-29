@@ -3,18 +3,20 @@ const dynamoClient = require('../dynamoClient')
 /*
     Purpose: This route is used to get all games
         for a specific user
+    Returns: all gameIds matched with a specific
+        username from the Portfolio table
 */
-router.get('/:userid', (req, res) => {
-    const params = {
+router.get('/users/:username/games', (req, res) => {
+    var params = {
         TableName: 'Portfolio',
-        Item: {
-            username: req.params.userid,
-            gameid: [],
-            stocks: []
-        }
+        ExpressionAttributeValues: {
+            'username': req.params.userId,
+        },
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
     }
     
-    dynamoClient.get(params, function(err, data) {
+    dynamoClient.query(params, function(err, data) {
         if (err) res.send(err);
         else res.send(data)
     })
