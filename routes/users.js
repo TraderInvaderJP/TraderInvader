@@ -2,6 +2,29 @@ const router = require('express').Router()
 const uuidv4 = require('uuid/v4')
 const AWS = require('aws-sdk')
 const cognito = new AWS.CognitoIdentityServiceProvider()
+const dynamoClient = require('../dynamoClient')
+
+/*
+    Purpose: This route is used to get all games
+        for a specific user
+    Returns: all gameIds matched with a specific
+        username from the Portfolio table
+*/
+router.get('/:username/games', (req, res) => {
+    var params = {
+        TableName: 'Portfolio',
+        ExpressionAttributeValues: {
+            ':username': req.params.username,
+        },
+        IndexName: 'username-index', //can probably remove this line
+        KeyConditionExpression: 'username = :username',
+    }
+    
+    dynamoClient.query(params, function(err, data) {
+        if (err) res.send(err);
+        else res.send(data)
+    })
+})
 
 /*
     Route: /users
