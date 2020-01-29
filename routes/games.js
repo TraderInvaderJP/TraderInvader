@@ -10,6 +10,7 @@ router.get('/:userid', (req, res) => {
         Key: {
             'username': req.params.userid
         },
+        IndexName: 'username-index',
         AttributesToGet: [
             'gameid'
         ]
