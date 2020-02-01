@@ -94,8 +94,22 @@ router.get('/:gameid/portfolios/', (req, res) => {
     Purpose: This route is used to create a new
         game
 */
-router.post('/', (req, res) => {
-    
+router.put('/:GameID', (req, res) => {
+    const params = {
+        TableName: 'Games',
+        Item: {
+            GameID: req.params.GameID,
+            data: req.body.game_data
+        },
+        ExpressionAttributeValues: {
+            ':GameID': req.params.GameID
+        }
+    }
+
+    dynamoClient.put(params, function(err, data) {
+        if (err) res.send(err);
+        else res.send(data)
+    })
 })
 
 /*
