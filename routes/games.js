@@ -101,6 +101,7 @@ router.put('/:GameID', (req, res) => {
             GameID: req.params.GameID,
             data: req.body.game_data
         },
+        ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
             ':GameID': req.params.GameID
         }
