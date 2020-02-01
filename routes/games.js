@@ -89,10 +89,14 @@ router.get('/:gameid/portfolios/', (req, res) => {
 })
 
 /*
-    Route: /games
-    Method: POST
+    Route: /games/:GameID
+    Method: PUT
     Purpose: This route is used to create a new
         game
+    Query parameters:
+        GameID - the value used to identify the game being added
+    Request body:
+        game_data - a JSON object containing all of the game information
 */
 router.put('/:GameID', (req, res) => {
     const params = {
