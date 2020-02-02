@@ -100,7 +100,7 @@ router.post('/token', (req, res) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
