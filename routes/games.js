@@ -89,25 +89,25 @@ router.get('/:gameid/portfolios/', (req, res) => {
 })
 
 /*
-    Route: /games/:GameID
-    Method: PUT
+    Route: /games/:gameid
+    Method: POST
     Purpose: This route is used to create a new
         game
     Query parameters:
-        GameID - the value used to identify the game being added
+        gameid - the value used to identify the game being added
     Request body:
         game_data - a JSON object containing all of the game information
 */
-router.put('/:GameID', (req, res) => {
+router.post('/:gameid', (req, res) => {
     const params = {
         TableName: 'Games',
         Item: {
-            GameID: req.params.GameID,
+            GameID: req.params.gameid,
             data: req.body.game_data
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
-            ':GameID': req.params.GameID
+            ':GameID': req.params.gameid
         }
     }
 
