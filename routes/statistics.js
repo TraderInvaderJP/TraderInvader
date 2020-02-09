@@ -29,32 +29,61 @@ router.put('/users/:userid/games', (req, res) => {
         if (err) res.send(err)
         else {
             //res.send(data)
+            const oldData = (' ' + data.Item.Statistics).slice(1);
+            
+
             const obj = JSON.parse(data.Item.Statistics)
             console.log(obj.numberOfWins)
-            const count = Number(obj.numberOfWins)
-            console.log(count)
-            const params2 = {
+            obj.numberOfWins = Number(obj.numberOfWins) + 1
+            console.log(obj)
+            const params = {
                 TableName: 'PlayerStats',
-                Key: {
-                    username: req.params.userid
+                Item: {
+                    username: req.params.userid,
+                    Statistics: JSON.stringify(obj)
                 },
-                UpdateExpression: 'SET Statistics.numberOfWins = :numberOfWins + 1',
-                ExpressionAttributeNames: {
-                    ":numberOfWins":count + 1
-                },
+                ConditionExpression: 'Statistics = :oldData',
                 ExpressionAttributeValues: {
-                    
-                },
-                ReturnValues: 'ALL_NEW'
+                    ':oldData': oldData
+                }
             }
         
-            dynamoClient.update(params2, (err, data) => {
-                if(err) res.send(err)
+            dynamoClient.put(params, function(err, data) {
+                if (err) res.send(err);
                 else res.send(data)
             })
         }
     })
 })
+/*
+    Route: /games/:gameid
+    Method: POST
+    Purpose: This route is used to create a new
+        game
+    Query parameters:
+        gameid - the value used to identify the game being added
+    Request body:
+        game_data - a JSON object containing all of the game information
+*/
+router.post('/:gameid', (req, res) => {
+    const params = {
+        TableName: 'Games',
+        Item: {
+            GameID: req.params.gameid,
+            data: req.body.game_data
+        },
+        ConditionExpression: 'NOT contains(GameID, :GameID)',
+        ExpressionAttributeValues: {
+            ':GameID': req.params.gameid
+        }
+    }
+
+    dynamoClient.put(params, function(err, data) {
+        if (err) res.send(err);
+        else res.send(data)
+    })
+})
+
 
 /*
     Route: /:gameid/portfolios/:userid/buy
