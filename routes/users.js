@@ -109,7 +109,10 @@ router.post('/token', (req, res) => {
             res.send({
                 success: true,
                 message: "Access Token Generated",
-                data: {access_token: AuthenticationResult.AccessToken, refresh_token: AuthenticationResult.RefreshToken}
+                data: {
+                    access_token: AuthenticationResult.AccessToken, 
+                    refresh_token: AuthenticationResult.RefreshToken
+                }
             })
         }
     })
@@ -190,18 +193,6 @@ router.get('/:username', (req, res) => {
 })
 
 /*
-    Route: /users/:username/username
-    Method: PUT
-    Purpose: This route is used to update
-        a user's username
-    Query Parameters:
-        username - user's username
-*/
-router.put('/:username/username', (req, res) => {
-    
-})
-
-/*
     Route: /users/:username/password
     Method: PUT
     Purpose: This route is used to update
@@ -233,6 +224,14 @@ router.put('/:username/password', (req, res) => {
             data
         })
     })
+})
+
+/*
+    Purpose: This route is used to add a user
+        to another user's friend list
+*/
+router.put('/:userid/friends/:friendid', (req, res) => {
+
 })
 
 module.exports = router
