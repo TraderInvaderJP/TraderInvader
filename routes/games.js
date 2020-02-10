@@ -53,8 +53,16 @@ router.get('/:gameid/portfolios/:userid', (req, res) => {
     }
 
     dynamoClient.get(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            msg: '',
+            data: data.Item
+        })
     })
 })
 
@@ -146,8 +154,16 @@ router.put('/:gameid/users/:userid', (req, res) => {
     }
 
     dynamoClient.put(params, function(err, data) {
-        if (err) res.send(err);
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        });
+        else res.send({
+            success: true,
+            msg: '',
+            data
+        })
     })
 })
 

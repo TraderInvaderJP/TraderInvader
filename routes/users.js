@@ -28,7 +28,7 @@ router.post('/', (req, res) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
@@ -68,7 +68,7 @@ router.put('/:username/verification', (req, res) => {
         }
         else res.send({
             success: true,
-            message: "User Verificatied",
+            message: "User Verified",
             data: {}
         })
     })
@@ -231,7 +231,71 @@ router.put('/:username/password', (req, res) => {
         to another user's friend list
 */
 router.put('/:userid/friends/:friendid', (req, res) => {
+    const params = {
+        TableName: 'Requests',
+        Item: {
+            username: req.params.userid,
+            friendname: req.params.friendid
+        },
+        ReturnValues: "ALL_NEW"
+    }
 
+    dynamoClient.put(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+router.get('/:userid/friends/', (req, res) => {
+    const params = {
+        TableName: 'Friends',
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': req.params.userid
+        },
+        ProjectionExpression: 'friendname'
+    }
+
+    dynamoClient.query(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+router.get('/:userid/friends/requests', (req, res) => {
+    const params = {
+        TableName: 'Requests',
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': req.params.userid
+        },
+        ProjectionExpression: 'friendname'
+    }
+
+    dynamoClient.query(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+router.put('/:userid/friends/:friendid', (req, res) => {
+    const requestsParams = {
+        TableName: 'Requests',
+    }
+
+    dynamoClient.delete(requestsParams, (err, data) => {
+
+    })
+
+    const friendsParams = {
+        TableName: 'Friends',
+    }
+
+    dynamoClient.put(friendsParams, (err, data) => {
+
+    })
 })
 
 module.exports = router
