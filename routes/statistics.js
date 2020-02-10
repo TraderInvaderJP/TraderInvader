@@ -22,7 +22,6 @@ router.put('/users/:userid/games', (req, res) => {
     dynamoClient.get(params, (err, data) => {
         if (err) res.send(err)
         else {
-            //res.send(data)
             const oldData = (' ' + data.Item.Statistics).slice(1);
             const obj = JSON.parse(data.Item.Statistics)
             obj.numberOfWins = Number(obj.numberOfWins) + 1
@@ -48,10 +47,49 @@ router.put('/users/:userid/games', (req, res) => {
 })
 
 /*
+    Route: /statistics/users/:userid/games
+    Method: PUT
     Purpose: This route is used to add a 
         game loss to a players number of games lost stats
+    Query parameters:
+        userid - the username of the user to have stats updated
+    Request body:
+        none
 */
-router.get('/:userid', (req, res) => {})
+router.put('/users/:userid', (req, res) => {
+    const params = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: req.params.userid
+        }
+    }
+    
+    dynamoClient.get(params, (err, data) => {
+        if (err) res.send(err)
+        else {
+            const oldData = (' ' + data.Item.Statistics).slice(1);
+            const obj = JSON.parse(data.Item.Statistics)
+            obj.numberOfLosses = Number(obj.numberOfLosses) + 1
+
+            const params = {
+                TableName: 'PlayerStats',
+                Item: {
+                    username: req.params.userid,
+                    Statistics: JSON.stringify(obj)
+                },
+                ConditionExpression: 'Statistics = :oldData',
+                ExpressionAttributeValues: {
+                    ':oldData': oldData
+                }
+            }
+        
+            dynamoClient.put(params, function(err, data) {
+                if (err) res.send(err);
+                else res.send(data)
+            })
+        }
+    })
+})
 
 /*
     Purpose: This route is used to add a 
