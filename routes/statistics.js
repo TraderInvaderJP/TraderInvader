@@ -95,7 +95,40 @@ router.put('/users/:userid', (req, res) => {
     Purpose: This route is used to add a 
         game win to a players win streak stat
 */
-router.get('/:userid', (req, res) => {})
+router.put('/:userid', (req, res) => {
+    const params = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: req.params.userid
+        }
+    }
+    
+    dynamoClient.get(params, (err, data) => {
+        if (err) res.send(err)
+        else {
+            const oldData = (' ' + data.Item.Statistics).slice(1);
+            const obj = JSON.parse(data.Item.Statistics)
+            obj.currentWinstreak = Number(obj.currentWinstreak) + 1
+
+            const params = {
+                TableName: 'PlayerStats',
+                Item: {
+                    username: req.params.userid,
+                    Statistics: JSON.stringify(obj)
+                },
+                ConditionExpression: 'Statistics = :oldData',
+                ExpressionAttributeValues: {
+                    ':oldData': oldData
+                }
+            }
+        
+            dynamoClient.put(params, function(err, data) {
+                if (err) res.send(err);
+                else res.send(data)
+            })
+        }
+    })
+})
 
 /*
     Purpose: This route is used to reset 
