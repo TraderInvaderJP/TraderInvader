@@ -227,8 +227,14 @@ router.put('/:username/password', (req, res) => {
 })
 
 /*
+    Route: /users/:userid/friends/:friendid
     Purpose: This route is used to add a user
         to another user's friend list
+    Query Parameters: 
+        userid - id of the user to send the request 
+            to
+        friendid - the id of the user sending the 
+            request
 */
 router.put('/:userid/friends/:friendid', (req, res) => {
     const params = {
@@ -246,6 +252,14 @@ router.put('/:userid/friends/:friendid', (req, res) => {
     })
 })
 
+/*
+    Route: /users/:userid/friend
+    Purpose: This route is used to get all
+        friends of a given user
+    Query Parameters:
+        userid - the user whose friends 
+            you're retrieving
+*/
 router.get('/:userid/friends/', (req, res) => {
     const params = {
         TableName: 'Friends',
@@ -263,6 +277,14 @@ router.get('/:userid/friends/', (req, res) => {
     })
 })
 
+/*
+    Route: /users/:userid/friends/requests
+    Purpose: This route is used to get all
+        friends requests that a user has
+    Query Parameters:
+        userid - the user that you want to 
+            retrieve requests for
+*/
 router.get('/:userid/friends/requests', (req, res) => {
     const params = {
         TableName: 'Requests',
@@ -280,6 +302,17 @@ router.get('/:userid/friends/requests', (req, res) => {
     })
 })
 
+/*
+    Route: '/users/:userid/friends/:friendid
+    Purpose: This route is used to add a 
+        user as a friend and remove the friend
+        request from their list.
+    Query Parameters:
+        userid - the user who you're adding the
+            friend to
+        friendid - the user who you're adding
+            as a friend
+*/
 router.put('/:userid/friends/:friendid', (req, res) => {
     const requestsParams = {
         TableName: 'Requests',
