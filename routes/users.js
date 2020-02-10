@@ -319,15 +319,29 @@ router.put('/:userid/friends/:friendid', (req, res) => {
     }
 
     dynamoClient.delete(requestsParams, (err, data) => {
-
-    })
-
-    const friendsParams = {
-        TableName: 'Friends',
-    }
-
-    dynamoClient.put(friendsParams, (err, data) => {
-
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else {
+            const friendsParams = {
+                TableName: 'Friends',
+            }
+        
+            dynamoClient.put(friendsParams, (err, data) => {
+                if (err) res.send({
+                    success: false,
+                    msg: err.message,
+                    data: {}
+                })
+                else res.send({
+                    success: true,
+                    msg: '',
+                    data: {}
+                })
+            })
+        }
     })
 })
 
