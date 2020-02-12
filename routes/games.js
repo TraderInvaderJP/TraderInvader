@@ -191,12 +191,19 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
     
     const { symbol, count, value } = req.body;
 
+    let isChanged = false;
+    let resData = {}
+
     dynamoClient.get(params, (err, data) => {
-        if (err) res.send({
-            success: false,
-            msg: err.message,
-            data: {}
-        })
+        if (err) {
+            isChanged = true;
+            
+            resData = {
+                success: false,
+                msg: err.message,
+                data: {}
+            }
+        }   
         else {
             let temp = data.Item;
 
@@ -205,32 +212,45 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
             else    
                 temp.stocks[symbol] = count;
 
-            if (temp.wallet - (count * value) < 0)
-                res.send({
+            if (temp.wallet - (count * value) < 0) {
+                isChanged = true;
+
+                resData = {
                     success: false,
                     msg: 'Not enough funds',
                     data: {}
-                })
+                }
+            }
             else
                 temp.wallet -= count * value;
 
-            params = {
-                TableName: 'Portfolio',
-                Item: temp
-            }
+            if(!isChanged) {
+                params = {
+                    TableName: 'Portfolio',
+                    Item: temp
+                }
 
-            dynamoClient.put(params, (err, data) => {
-                if (err) res.send({
-                    success: false,
-                    msg: err.message,
-                    data: {}
+                dynamoClient.put(params, (err, data) => {
+                    if (err) {
+                        resData = {
+                            success: false,
+                            msg: err.message,
+                            data: {}
+                        }
+                    }
+                    else {
+                        resData = {
+                            success: true,
+                            msg: 'Bought Stock',
+                            data
+                        }
+                    }
+
+                    res.send(resData)
                 })
-                else res.send({
-                    success: true,
-                    msg: 'Bought Stock',
-                    data
-                })
-            })
+            }
+            else
+                res.send(resData)
         }
     })
 })
@@ -259,50 +279,75 @@ router.put('/:gameid/portfolios/:userid/sell', (req, res) => {
     
     const { symbol, count, value } = req.body;
 
+    let isChanged = false;
+    let resData = {}
+
     dynamoClient.get(params, (err, data) => {
-        if (err) res.send({
-            success: false,
-            msg: err.message,
-            data: {}
-        })
+        if (err) {
+            isChanged = true;
+            
+            resData = {
+                success: false,
+                msg: err.message,
+                data: {}
+            }
+        }   
         else {
             let temp = data.Item;
 
-            if(temp.stocks[symbol])
-                if(temp.stocks[symbol] - count < 0)
-                    res.send({
+            if(temp.stocks[symbol]) {
+                if(temp.stocks[symbol] - count < 0) {
+                    isChanged = true;
+
+                    resData = {
                         success: false,
-                        msg: 'Not enough stock owned',
+                        msg: 'Don\'t have enough stocks',
                         data: {}
-                    })
+                    }
+                }
                 else
                     temp.stocks[symbol] -= count;
-            else    
-                res.send({
-                    success: false,
-                    msg: 'Don\'t own any of this symbol',
-                    data: {}
-                })
-
-            temp.wallet += count * value;
-
-            params = {
-                TableName: 'Portfolio',
-                Item: temp
             }
+            else {
+                isChanged = true;
 
-            dynamoClient.put(params, (err, data) => {
-                if (err) res.send({
+                resData = {
                     success: false,
-                    msg: err.message,
+                    msg: 'Don\'t own this stock',
                     data: {}
+                }
+            }
+                
+            if(!isChanged)
+                temp.wallet += count * value;
+
+            if(!isChanged) {
+                params = {
+                    TableName: 'Portfolio',
+                    Item: temp
+                }
+
+                dynamoClient.put(params, (err, data) => {
+                    if (err) {
+                        resData = {
+                            success: false,
+                            msg: err.message,
+                            data: {}
+                        }
+                    }
+                    else {
+                        resData = {
+                            success: true,
+                            msg: 'Sold stock',
+                            data
+                        }
+                    }
+
+                    res.send(resData)
                 })
-                else res.send({
-                    success: true,
-                    msg: 'Sold Stock',
-                    data
-                })
-            })
+            }
+            else
+                res.send(resData)
         }
     })
 })
