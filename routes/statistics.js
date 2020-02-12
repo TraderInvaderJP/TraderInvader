@@ -140,6 +140,39 @@ router.put('/:userid', (req, res) => {
     })
 })
 
+/*
+    Route: /:userid/users
+    Method: PUT
+    Purpose: This route is used to get a players
+        statistics information from the table in the form of a JSON object
+    Query parameters:
+        userid - the username of the user having their sats returned
+    Request body:
+        none
+*/
+router.get('/:userid/users', (req, res) => {
+    const params = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: req.params.userid
+        }
+    }
+    
+    dynamoClient.get(params, (err, data) => {
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else 
+        res.send({
+            success: true,
+            msg: '',
+            data: data.Item
+        })
+    })
+})
+
 /* TODO: Add achievement routes to backend: */
 
 module.exports = router
