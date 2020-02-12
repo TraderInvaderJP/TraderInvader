@@ -175,4 +175,37 @@ router.get('/:userid/users', (req, res) => {
 
 /* TODO: Add achievement routes to backend: */
 
+/*
+    Route: /:userid/:achievment
+    Method: PUT
+    Purpose: This route is used to add an
+        achievment to a users list of achievments which is stored as a JSON object
+    Query parameters:
+        userid - the username of the user to have achievments added to
+        achievment - the name of the achievment the user has earned
+    Request body:
+        none
+*/
+router.put('/:userid/achievement', (req, res) => {
+    const params = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: req.params.userid,
+            achievementName: req.params.achievement
+        },
+        UpdateExpression: '',
+        ExpressionAttributeValues: {
+        },
+        ExpressionAttributeValues: {
+
+        },
+        ReturnValues: 'ALL_NEW'
+    }
+
+    dynamoClient.update(params, function (err, data) {
+        if (err) res.send(err);
+        else res.send(data)
+    })
+})
+
 module.exports = router
