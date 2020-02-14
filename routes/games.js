@@ -11,13 +11,13 @@ const dynamoClient = require('../dynamoClient')
 */
 router.get('/:userid', (req, res) => {
     const params = {
-        TableName: 'Portfolio',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
         ExpressionAttributeValues: {
-            ':username': req.params.userid
+            ':username': req.params.userid,
+            ':id': 'portfolio'
         },
-        ProjectionExpression: 'gameid'
+        //ProjectionExpression: 'identifier'
     }
     
     dynamoClient.query(params, function(err, data) {
@@ -139,10 +139,10 @@ router.post('/:gameid', (req, res) => {
 */
 router.put('/:gameid/users/:userid', (req, res) => {
     const params = {
-        TableName: 'Portfolio',
+        TableName: 'Experimental',
         Item: {
             username: req.params.userid,
-            gameid: req.params.gameid,
+            identifier: "portfolio#" + req.params.gameid,
             wallet: req.body.initial_amount,
             stocks: {}
         },
