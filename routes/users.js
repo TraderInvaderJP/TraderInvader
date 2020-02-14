@@ -171,16 +171,16 @@ router.put('/token', (req, res) => {
         "UserAttributes" - attributes like the email
             and email verification status
 */
-router.get('/:username', (req, res) => {
+router.get('/', (req, res) => {
     const params = {
-        AccessToken: req.body.access_token
+        AccessToken: req.query.access_token
     }
 
     cognito.getUser(params, (err, data) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
