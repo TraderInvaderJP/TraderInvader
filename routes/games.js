@@ -14,21 +14,21 @@ router.get('/:userid', (req, res) => {
         TableName: 'Experimental',
         KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
         ExpressionAttributeValues: {
-            ':username': req.params.userid,
+            ':username': "user#" + req.params.userid,
             ':id': 'portfolio'
         },
-        //ProjectionExpression: 'identifier'
+        ProjectionExpression: 'identifier'
     }
     
     dynamoClient.query(params, function(err, data) {
         if (err) res.send(err);
         else {
-            let gameList = data.Items.map(item => item.gameid)
+            let gameList = data.Items;
 
             res.send({
                 success: true,
                 msg: '',
-                data: gameList
+                data: gameList.map(item => item.identifier.split('#')[1])
             })
         }
     })
@@ -108,10 +108,11 @@ router.get('/:gameid/portfolios/', (req, res) => {
 */
 router.post('/:gameid', (req, res) => {
     const params = {
-        TableName: 'Games',
+        TableName: 'Experimental',
         Item: {
-            GameID: req.params.gameid,
-            data: req.body.game_data
+            username: "game",
+            identifier: req.params.gameid,
+            ...req.body.game_data
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
@@ -141,14 +142,14 @@ router.put('/:gameid/users/:userid', (req, res) => {
     const params = {
         TableName: 'Experimental',
         Item: {
-            username: req.params.userid,
+            username: "user#" + req.params.userid,
             identifier: "portfolio#" + req.params.gameid,
             wallet: req.body.initial_amount,
             stocks: {}
         },
         ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
         ExpressionAttributeValues: {
-            ':username': req.params.userid,
+            ':username': "user#" + req.params.userid,
             ':gameid': req.params.gameid
         }
     }
@@ -182,10 +183,10 @@ router.put('/:gameid/users/:userid', (req, res) => {
 */
 router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
     let params = {
-        TableName: 'Portfolio',
+        TableName: 'Experimental',
         Key: {
-            username: req.params.userid,
-            gameid: req.params.gameid
+            username: "user#" + req.params.userid,
+            identifier: "portfolio#" + req.params.gameid
         }
     }
     
@@ -226,7 +227,7 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
 
             if(!isChanged) {
                 params = {
-                    TableName: 'Portfolio',
+                    TableName: 'Experimental',
                     Item: temp
                 }
 
@@ -272,8 +273,8 @@ router.put('/:gameid/portfolios/:userid/sell', (req, res) => {
     let params = {
         TableName: 'Portfolio',
         Key: {
-            username: req.params.userid,
-            gameid: req.params.gameid
+            username: "user#" + req.params.userid,
+            identifier: "portfolio#" + req.params.gameid
         }
     }
     
@@ -323,7 +324,7 @@ router.put('/:gameid/portfolios/:userid/sell', (req, res) => {
 
             if(!isChanged) {
                 params = {
-                    TableName: 'Portfolio',
+                    TableName: 'Exerimental',
                     Item: temp
                 }
 
