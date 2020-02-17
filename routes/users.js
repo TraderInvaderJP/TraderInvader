@@ -171,16 +171,16 @@ router.put('/token', (req, res) => {
         "UserAttributes" - attributes like the email
             and email verification status
 */
-router.get('/:username', (req, res) => {
+router.get('/', (req, res) => {
     const params = {
-        AccessToken: req.body.access_token
+        AccessToken: req.query.access_token
     }
 
     cognito.getUser(params, (err, data) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
@@ -228,6 +228,7 @@ router.put('/:username/password', (req, res) => {
 
 /*
     Route: /users/:userid/friends/:friendid
+    Method: PUT
     Purpose: This route is used to add a user
         to another user's friend list
     Query Parameters: 
@@ -254,6 +255,7 @@ router.put('/:userid/friends/:friendid', (req, res) => {
 
 /*
     Route: /users/:userid/friend
+    Method: GET
     Purpose: This route is used to get all
         friends of a given user
     Query Parameters:
@@ -279,6 +281,7 @@ router.get('/:userid/friends/', (req, res) => {
 
 /*
     Route: /users/:userid/friends/requests
+    Method: GET
     Purpose: This route is used to get all
         friends requests that a user has
     Query Parameters:
@@ -303,7 +306,8 @@ router.get('/:userid/friends/requests', (req, res) => {
 })
 
 /*
-    Route: '/users/:userid/friends/:friendid
+    Route: /users/:userid/friends/:friendid
+    Method: PUT
     Purpose: This route is used to add a 
         user as a friend and remove the friend
         request from their list.
@@ -331,10 +335,10 @@ router.put('/:userid/friends/:friendid', (req, res) => {
         
             dynamoClient.put(friendsParams, (err, data) => {
                 if (err) res.send({
-                    success: false,
-                    msg: err.message,
-                    data: {}
-                })
+                        success: false,
+                        msg: err.message,
+                        data: {}
+                    })
                 else res.send({
                     success: true,
                     msg: '',
