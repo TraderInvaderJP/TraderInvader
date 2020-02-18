@@ -182,29 +182,42 @@ router.get('/:userid/users', (req, res) => {
         achievment to a users list of achievments which is stored as a JSON object
     Query parameters:
         userid - the username of the user to have achievments added to
-        achievment - the name of the achievment the user has earned
     Request body:
-        none
+        achievment - the name of the achievment the user has earned
 */
-router.put('/:userid/achievement', (req, res) => {
+router.put('/:userid/achievements', (req, res) => {
     const params = {
         TableName: 'PlayerStats',
         Key: {
             username: req.params.userid,
-            achievementName: req.params.achievement
-        },
-        UpdateExpression: '',
-        ExpressionAttributeValues: {
-        },
-        ExpressionAttributeValues: {
-
-        },
-        ReturnValues: 'ALL_NEW'
+        }
     }
+    
+    dynamoClient.get(params, (err, data) => {
+        if (err) res.send(err)
+        else {
+            const oldData = (' ' + data.Item.Achievments).slice(1);
+            const obj = JSON.parse(data.Item.Achievments);
+            obj[req.body.achievmentName] = "Earned";
 
-    dynamoClient.update(params, function (err, data) {
-        if (err) res.send(err);
-        else res.send(data)
+            const params2 = {
+                TableName: 'PlayerStats',
+                Item: {
+                    username: req.params.userid,
+                    Achievments: JSON.stringify(obj),
+                    Statistics: data.Item.Statistics
+                },
+                ConditionExpression: 'Achievments = :oldData',
+                ExpressionAttributeValues: {
+                    ':oldData': oldData
+                }
+            }
+        
+            dynamoClient.put(params2, function(err, data) {
+                if (err) res.send(err);
+                else res.send(data)
+            })
+        }
     })
 })
 
