@@ -193,6 +193,44 @@ router.get('/', (req, res) => {
 })
 
 /*
+    Route: /users/:username/password/request
+    Method: PUT
+    Purpose:
+    Query Parameters:
+*/
+router.put('/:username/password/request', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: req.params.username
+    }
+
+    cognito.forgotPassword(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+/*
+    Route: /users/:username/password/update
+    Method: PUT
+    Purpose:
+    Query Parameters:
+    Request Body:
+*/
+router.put('/:username/password/update', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        ConfirmationCode: req.params.confirmation_code,
+        Username: req.params.username,
+        Password: req.params.new_password
+    }
+
+    cognito.confirmForgotPassword(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+/*
     Route: /users/:username/password
     Method: PUT
     Purpose: This route is used to update
