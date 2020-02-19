@@ -105,13 +105,15 @@ router.get('/:gameid/portfolios/', (req, res) => {
         gameid - the value used to identify the game being added
     Request body:
         game_data - a JSON object containing all of the game information
+        end_time - A date respented as an EPOCH timestamp (number)
 */
 router.post('/:gameid', (req, res) => {
     const params = {
         TableName: 'Games',
         Item: {
             GameID: req.params.gameid,
-            data: req.body.game_data
+            data: req.body.game_data,
+            endTime: req.body.end_time
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
