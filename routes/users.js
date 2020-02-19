@@ -28,7 +28,7 @@ router.post('/', (req, res) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
@@ -68,7 +68,7 @@ router.put('/:username/verification', (req, res) => {
         }
         else res.send({
             success: true,
-            message: "User Verificatied",
+            message: "User Verified",
             data: {}
         })
     })
@@ -100,7 +100,7 @@ router.post('/token', (req, res) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
@@ -109,7 +109,10 @@ router.post('/token', (req, res) => {
             res.send({
                 success: true,
                 message: "Access Token Generated",
-                data: {access_token: AuthenticationResult.AccessToken, refresh_token: AuthenticationResult.RefreshToken}
+                data: {
+                    access_token: AuthenticationResult.AccessToken, 
+                    refresh_token: AuthenticationResult.RefreshToken
+                }
             })
         }
     })
@@ -168,16 +171,16 @@ router.put('/token', (req, res) => {
         "UserAttributes" - attributes like the email
             and email verification status
 */
-router.get('/:username', (req, res) => {
+router.get('/', (req, res) => {
     const params = {
-        AccessToken: req.body.access_token
+        AccessToken: req.query.access_token
     }
 
     cognito.getUser(params, (err, data) => {
         if (err) {
             res.send({
                 success: false,
-                message: data.message,
+                message: err.message,
                 data: {}
             })
         }
@@ -190,17 +193,43 @@ router.get('/:username', (req, res) => {
 })
 
 /*
-    Route: /users/:username/username
+    Route: /users/:username/password/request
     Method: PUT
-    Purpose: This route is used to update
-        a user's username
+    Purpose:
     Query Parameters:
-        username - user's username
 */
-router.put('/:username/username', (req, res) => {
-    
+router.put('/:username/password/request', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: req.params.username
+    }
+
+    cognito.forgotPassword(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
 })
 
+/*
+    Route: /users/:username/password/update
+    Method: PUT
+    Purpose:
+    Query Parameters:
+    Request Body:
+*/
+router.put('/:username/password/update', (req, res) => {
+    const params = {
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        ConfirmationCode: req.params.confirmation_code,
+        Username: req.params.username,
+        Password: req.params.new_password
+    }
+
+    cognito.confirmForgotPassword(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
 /*
     Route: /users/:username/password
     Method: PUT
@@ -232,6 +261,129 @@ router.put('/:username/password', (req, res) => {
             message: 'Password Updated',
             data
         })
+    })
+})
+
+/*
+    Route: /users/:userid/friends/:friendid
+    Method: PUT
+    Purpose: This route is used to add a user
+        to another user's friend list
+    Query Parameters: 
+        userid - id of the user to send the request 
+            to
+        friendid - the id of the user sending the 
+            request
+*/
+router.put('/:userid/friends/:friendid', (req, res) => {
+    const params = {
+        TableName: 'Requests',
+        Item: {
+            username: req.params.userid,
+            friendname: req.params.friendid
+        },
+        ReturnValues: "ALL_NEW"
+    }
+
+    dynamoClient.put(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+/*
+    Route: /users/:userid/friend
+    Method: GET
+    Purpose: This route is used to get all
+        friends of a given user
+    Query Parameters:
+        userid - the user whose friends 
+            you're retrieving
+*/
+router.get('/:userid/friends/', (req, res) => {
+    const params = {
+        TableName: 'Friends',
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': req.params.userid
+        },
+        ProjectionExpression: 'friendname'
+    }
+
+    dynamoClient.query(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+/*
+    Route: /users/:userid/friends/requests
+    Method: GET
+    Purpose: This route is used to get all
+        friends requests that a user has
+    Query Parameters:
+        userid - the user that you want to 
+            retrieve requests for
+*/
+router.get('/:userid/friends/requests', (req, res) => {
+    const params = {
+        TableName: 'Requests',
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+            ':username': req.params.userid
+        },
+        ProjectionExpression: 'friendname'
+    }
+
+    dynamoClient.query(params, (err, data) => {
+        if (err) res.send(err)
+        else res.send(data)
+    })
+})
+
+/*
+    Route: /users/:userid/friends/:friendid
+    Method: PUT
+    Purpose: This route is used to add a 
+        user as a friend and remove the friend
+        request from their list.
+    Query Parameters:
+        userid - the user who you're adding the
+            friend to
+        friendid - the user who you're adding
+            as a friend
+*/
+router.put('/:userid/friends/:friendid', (req, res) => {
+    const requestsParams = {
+        TableName: 'Requests',
+    }
+
+    dynamoClient.delete(requestsParams, (err, data) => {
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else {
+            const friendsParams = {
+                TableName: 'Friends',
+            }
+        
+            dynamoClient.put(friendsParams, (err, data) => {
+                if (err) res.send({
+                        success: false,
+                        msg: err.message,
+                        data: {}
+                    })
+                else res.send({
+                    success: true,
+                    msg: '',
+                    data: {}
+                })
+            })
+        }
     })
 })
 

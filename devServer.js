@@ -1,6 +1,8 @@
 const app = require('./index')
 const AWS = require('aws-sdk')
 
+const PORT = 8080
+
 AWS.config.credentials = new AWS.SharedIniFileCredentials()
 
-app.listen(8080, () => console.log('Server Started'))
+app.listen(PORT, () => console.log('Server Started on port ' + PORT))

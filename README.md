@@ -6,4 +6,4 @@ Getting Started:
 
 `npm install`
 
-use `nodemon localServer` to start dev server
+use `npm start` to start dev server
