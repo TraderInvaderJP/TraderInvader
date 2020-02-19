@@ -2,6 +2,7 @@ const router = require('express').Router()
 const uuidv4 = require('uuid/v4')
 const AWS = require('aws-sdk')
 const cognito = new AWS.CognitoIdentityServiceProvider()
+const dynamoClient = require('../dynamoClient')
 
 /*
     Route: /users
@@ -14,7 +15,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider()
         email - user's email
 */
 router.post('/', (req, res) => {
-    const params = {
+    let params = {
         ClientId: process.env.COGNITO_CLIENT_ID,
         Password: req.body.password,
         Username: req.body.username,
@@ -24,19 +25,47 @@ router.post('/', (req, res) => {
         }]
     }
     
+    let isErr = false;
+    let response = {}
+
     cognito.signUp(params, (err, data) => {
         if (err) {
+            isErr = true;
             res.send({
                 success: false,
                 message: err.message,
                 data: {}
             })
         }
-        else res.send({
-            success: true,
-            message: "User Created",
-            data: {}
-        })
+        else {
+            response = {
+                success: true,
+                message: "User Created",
+                data: {}
+            }
+
+            if(!isErr)
+            {
+                params = {
+                    TableName: 'Experimental',
+                    Item: {
+                        username: 'user#' + req.body.username,
+                        identifier: 'requests',
+                        friends: []
+                    }
+                }
+            
+                dynamoClient.put(params, (err, data) => {
+                    console.log(response)
+                    if (err) res.send({
+                        success: false,
+                        message: err.message,
+                        data: {}
+                    })
+                    else res.send(response)
+                })
+            }
+        }
     })
 })
 
@@ -237,17 +266,24 @@ router.put('/:username/password', (req, res) => {
         friendid - the id of the user sending the 
             request
 */
-router.put('/:userid/friends/:friendid', (req, res) => {
+router.put('/:userid/requests/:friendid', (req, res) => {
     const params = {
-        TableName: 'Requests',
-        Item: {
-            username: req.params.userid,
-            friendname: req.params.friendid
+        TableName: 'Experimental',
+        Key: {
+            username: 'user#' + req.params.userid,
+            identifier: 'friends'
+        },
+        UpdateExpression: 'SET friends = list_append(friends, :user)',
+        ExpressionAttributeValues: {
+            ':user': [{
+                name: req.params.friendid,
+                confirmed: false
+            }]
         },
         ReturnValues: "ALL_NEW"
     }
 
-    dynamoClient.put(params, (err, data) => {
+    dynamoClient.update(params, (err, data) => {
         if (err) res.send(err)
         else res.send(data)
     })
@@ -262,20 +298,23 @@ router.put('/:userid/friends/:friendid', (req, res) => {
         userid - the user whose friends 
             you're retrieving
 */
-router.get('/:userid/friends/', (req, res) => {
+router.get('/:userid/confirmed', (req, res) => {
     const params = {
-        TableName: 'Friends',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :user AND identifier = :id',
         ExpressionAttributeValues: {
-            ':username': req.params.userid
-        },
-        ProjectionExpression: 'friendname'
+            ':user': 'user#' + req.params.userid,
+            ':id': 'friends'
+        }
     }
-
+    
     dynamoClient.query(params, (err, data) => {
         if (err) res.send(err)
-        else res.send(data)
+        else {
+            const { Items } = data
+            let name = Items[0].friends.filter(item => item.confirmed === true).map(item => item.name)
+            res.send(name)
+        }
     })
 })
 
@@ -288,20 +327,23 @@ router.get('/:userid/friends/', (req, res) => {
         userid - the user that you want to 
             retrieve requests for
 */
-router.get('/:userid/friends/requests', (req, res) => {
+router.get('/:userid/requests', (req, res) => {
     const params = {
-        TableName: 'Requests',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :user AND identifier = :id',
         ExpressionAttributeValues: {
-            ':username': req.params.userid
-        },
-        ProjectionExpression: 'friendname'
+            ':user': 'user#' + req.params.userid,
+            ':id': 'friends'
+        }
     }
-
+    
     dynamoClient.query(params, (err, data) => {
         if (err) res.send(err)
-        else res.send(data)
+        else {
+            const { Items } = data
+            let name = Items[0].friends.filter(item => item.confirmed === false).map(item => item.name)
+            res.send(name)
+        }
     })
 })
 
@@ -318,33 +360,44 @@ router.get('/:userid/friends/requests', (req, res) => {
             as a friend
 */
 router.put('/:userid/friends/:friendid', (req, res) => {
-    const requestsParams = {
-        TableName: 'Requests',
+    let params = {
+        TableName: 'Experimental',
+        Key: {
+            username: 'user#' + req.params.userid,
+            identifier: 'friends'
+        }
     }
 
-    dynamoClient.delete(requestsParams, (err, data) => {
-        if (err) res.send({
-            success: false,
-            msg: err.message,
-            data: {}
-        })
+    let isErr = false
+
+    dynamoClient.get(params, (err, data) => {
+        if(err) {
+            isErr = true
+            res.send(err)
+        }
         else {
-            const friendsParams = {
-                TableName: 'Friends',
-            }
-        
-            dynamoClient.put(friendsParams, (err, data) => {
-                if (err) res.send({
-                        success: false,
-                        msg: err.message,
-                        data: {}
-                    })
-                else res.send({
-                    success: true,
-                    msg: '',
-                    data: {}
+            if(!isErr) {
+                const { Item } = data
+            
+                Item.friends = Item.friends.map(item => {
+                    if(item.name === req.params.friendid)
+                        item.confirmed = true;
+                    
+                    return item
                 })
-            })
+
+                params = {
+                    TableName: 'Experimental',
+                    Item: {
+                        ...Item
+                    }
+                }
+
+                dynamoClient.put(params, (err, data) => {
+                    if (err) res.send()
+                    else res.send(data)
+                })
+            }
         }
     })
 })
