@@ -397,47 +397,46 @@ router.get('/:userid/requests', (req, res) => {
         friendid - the user who you're adding
             as a friend
 */
-router.put('/:userid/friends/:friendid', (req, res) => {
-    let params = {
-        TableName: 'Experimental',
-        Key: {
-            username: 'user#' + req.params.userid,
-            identifier: 'friends'
-        }
-    }
-
-    let isErr = false
-
-    dynamoClient.get(params, (err, data) => {
-        if(err) {
-            isErr = true
-            res.send(err)
-        }
-        else {
-            if(!isErr) {
-                const { Item } = data
-            
-                Item.friends = Item.friends.map(item => {
-                    if(item.name === req.params.friendid)
-                        item.confirmed = true;
-                    
-                    return item
-                })
-
-                params = {
-                    TableName: 'Experimental',
-                    Item: {
-                        ...Item
-                    }
-                }
-
-                dynamoClient.put(params, (err, data) => {
-                    if (err) res.send()
-                    else res.send(data)
-                })
+router.put('/:userid/friends/:friendid', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'friends'
             }
         }
-    })
+
+        let data = await dynamoClient.get(params).promise()
+
+        data = data.Item
+
+        data.friends = data.friends.map(item => {
+            if (item.name == req.params.friendid)
+                item.confirmed = true
+            
+            return item
+        })
+
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                ...data
+            }
+        }
+
+        data = await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: '',
+            data
+        })
+    }
+    catch(err)
+    {
+        res.send(err)
+    }
 })
 
 module.exports = router
