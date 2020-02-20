@@ -127,8 +127,16 @@ router.post('/:gameid', (req, res) => {
     }
 
     dynamoClient.put(params, function(err, data) {
-        if (err) res.send(err);
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        });
+        else res.send({
+            success: true,
+            msg: 'Created Game',
+            data
+        })
     })
 })
 
