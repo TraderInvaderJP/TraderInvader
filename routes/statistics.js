@@ -229,23 +229,24 @@ router.put('/:userid/achievements', (req, res) => {
 var something;
 router.put('/:GameID/Tester', (req, res) => {
     const params = {
-        TableName: 'Games',
+        TableName: 'Experimental',
         Key: {
-            GameID: req.params.GameID
+            username: 'game',
+            identifier: req.params.GameID
         }
     }
 
     dynamoClient.get(params, async (err, data) => {
         if (err) res.send(err);
         else {
-            var userArray = data.Item.data.users;
+            var userArray = data.Item.users;
             console.log(userArray);
             var userPortfolioArray = [];
             var moneyMadeByEachUser = [];
 
             for (let user of userArray)
             {
-                var someUser = await getUsersPortfolioValues(user, data.Item.GameID);
+                var someUser = await getUsersPortfolioValues(user, data.Item.identifier);
                 userPortfolioArray.push(someUser);
             }
 
@@ -332,10 +333,10 @@ router.put('/:GameID/Tester', (req, res) => {
 */
 async function getUsersPortfolioValues(username, gameID) {
     const params = {
-        TableName: 'Portfolio',
+        TableName: 'Experimental',
         Key: {
-            username: username,
-            gameid: gameID
+            username: 'user#' + username,
+            identifier: 'portfolio#' + gameID
         }
     }
 
