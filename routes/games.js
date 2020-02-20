@@ -105,6 +105,7 @@ router.get('/:gameid/portfolios/', (req, res) => {
         gameid - the value used to identify the game being added
     Request body:
         game_data - a JSON object containing all of the game information
+        end_time - A date respented as an EPOCH timestamp (number)
 */
 router.post('/:gameid', (req, res) => {
     const params = {
@@ -145,7 +146,9 @@ router.put('/:gameid/users/:userid', (req, res) => {
             username: "user#" + req.params.userid,
             identifier: "portfolio#" + req.params.gameid,
             wallet: req.body.initial_amount,
-            stocks: {}
+            stocks: {},
+            ongoing: false,
+            result: false
         },
         ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
         ExpressionAttributeValues: {
