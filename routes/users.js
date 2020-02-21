@@ -328,10 +328,10 @@ router.put('/:userid/requests/:friendid', (req, res) => {
 })
 
 /*
-    Route: /users/:userid/friend
+    Route: /users/:userid/confirmed
     Method: GET
     Purpose: This route is used to get all
-        friends of a given user
+        confirmed friends of a given user
     Query Parameters:
         userid - the user whose friends 
             you're retrieving
@@ -357,7 +357,7 @@ router.get('/:userid/confirmed', (req, res) => {
 })
 
 /*
-    Route: /users/:userid/friends/requests
+    Route: /users/:userid/requests
     Method: GET
     Purpose: This route is used to get all
         friends requests that a user has
