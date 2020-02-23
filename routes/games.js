@@ -109,16 +109,23 @@ router.get('/:gameid/portfolios/', (req, res) => {
     Query parameters:
         gameid - the value used to identify the game being added
     Request body:
-        game_data - a JSON object containing all of the game information
-        end_time - A date respented as an EPOCH timestamp (number)
+        winCondition - A boolean saying what the win condition is
+        wallet - A number saying how much money each player gets
+            at the start of the game
+        users - An array containing the users in the game (probably
+            just the user that created it)
+        endTime - A date respented as an EPOCH timestamp (number)
 */
 router.post('/:gameid', (req, res) => {
     const params = {
         TableName: 'Experimental',
         Item: {
-            username: "game",
+            username: "game#active",
             identifier: req.params.gameid,
-            ...req.body.game_data
+            winCondition: req.body.winCondition,
+            wallet: req.body.wallet,
+            users: req.body.users,
+            endTime: req.body.endTime
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
