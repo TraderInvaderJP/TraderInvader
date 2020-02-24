@@ -226,7 +226,6 @@ router.put('/:userid/achievements', (req, res) => {
    TEMPORARY FOR TESTING
 */
 
-var something;
 router.put('/:GameID/Tester', (req, res) => {
     const params = {
         TableName: 'Experimental',
@@ -247,78 +246,32 @@ router.put('/:GameID/Tester', (req, res) => {
             for (let user of userArray)
             {
                 var someUser = await getUsersPortfolioValues(user, data.Item.identifier);
-                userPortfolioArray.push(someUser);
-            }
-
-            //console.log(userPortfolioArray);
-
-            for (let userPortfolio of userPortfolioArray)
-            {
-                var value = userPortfolio.Item.wallet;
-                
-                for (var stockSymbol in userPortfolio.Item.stocks) {
-                    var stockValue = await getStockValue(stockSymbol);
-                    value = value + stockValue;
-                }
-                moneyMadeByEachUser.push(value);
-                console.log("EXECUTION");
-            }
-
-            for (var step = 0; step < moneyMadeByEachUser.length; step++)
-            {
-                if (moneyMadeByEachUser[step] < userPortfolioArray[step].Item.wallet)
-                {
-                    moneyMadeByEachUser[step] = moneyMadeByEachUser[step] + userPortfolioArray[step].Item.wallet;
-                }
+                moneyMadeByEachUser.push(someUser);
             }
 
             console.log(moneyMadeByEachUser);
 
-            //console.log(moneyMadeForEachUserArray[0].Item.stocks)
-
-
-
-            // const params2 = {
-            //     TableName: 'Portfolio',
-            //     IndexName: 'gameid-index',
-            //     KeyConditionExpression: 'gameid = :gameid',
-            //     ExpressionAttributeValues: {
-            //         ':gameid': req.params.GameID
-            //     },
-            //     ProjectionExpression: 'stocks, username, wallet'
+            // for (let userPortfolio of userPortfolioArray)
+            // {
+            //     var value = userPortfolio.Item.wallet;
+                
+            //     for (var stockSymbol in userPortfolio.Item.stocks) {
+            //         var stockValue = await getStockValue(stockSymbol);
+            //         value = value + stockValue;
+            //     }
+            //     moneyMadeByEachUser.push(value);
+            //     console.log("EXECUTION");
             // }
 
-            // dynamoClient.query(params2, (err, data) => {
-            //     if (err) console.log("ERROR259");
-            //     else 
+            // for (var step = 0; step < moneyMadeByEachUser.length; step++)
+            // {
+            //     if (moneyMadeByEachUser[step] < userPortfolioArray[step].Item.wallet)
             //     {
-            //         var userPortfolioValues = [];
-            //         for (let step = 0; step < data.Count; step++)
-            //         {
-            //             var value = data.Items[step].wallet;
-
-            //             for (var stockSymbol in data.Items[step].stocks)
-            //             {
-            //                 console.log(data.Items[step].stocks[stockSymbol]);
-                                
-            //                 var stockSymbolPrice;
-            //                 var strArray = [];
-                            
-            //                 vaxios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price/' + stockSymbol)
-                            
-                                
-
-            //                 userPortfolioValues.push(200);
-                            
-            //             }
-
-            //         }
-            //         console.log(userPortfolioValues);
+            //         moneyMadeByEachUser[step] = moneyMadeByEachUser[step] + userPortfolioArray[step].Item.wallet;
             //     }
-            // })
+            // }
 
-
-
+            // console.log(moneyMadeByEachUser);
 
             res.send(data)
         }
@@ -344,13 +297,13 @@ async function getUsersPortfolioValues(username, gameID) {
         const error = err;
         if (err) console.log("error");
         else {
-            // var userValue = 0;
-            // userValue = userValue + data.Item.wallet;
+            var userValue = 0;
+            userValue = userValue + data.Item.wallet;
 
-            // for (var stockSymbol in data.Item.stocks) {
-            //     var stockValue = await getStockValue(stockSymbol);
-            //     userValue = userValue + stockValue;
-            // }
+            for (var stockSymbol in data.Item.stocks) {
+                var stockValue = await getStockValue(stockSymbol);
+                userValue = userValue + stockValue;
+            }
             
             return data;
         }
