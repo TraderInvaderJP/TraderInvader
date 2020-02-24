@@ -166,9 +166,7 @@ router.put('/:gameid/users/:userid', (req, res) => {
             username: "user#" + req.params.userid,
             identifier: "portfolio#" + req.params.gameid,
             wallet: req.body.initial_amount,
-            stocks: {},
-            ongoing: false,
-            result: false
+            stocks: {}
         },
         ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
         ExpressionAttributeValues: {
