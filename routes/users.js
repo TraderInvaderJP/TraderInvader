@@ -68,46 +68,6 @@ router.post('/', async (req, res) => {
             data: {}
         })
     }
-
-    , (err, data) => {
-        if (err) {
-            isErr = true;
-            res.send({
-                success: false,
-                message: err.message,
-                data: {}
-            })
-        }
-        else {
-            response = {
-                success: true,
-                message: "User Created",
-                data: {}
-            }
-
-            if(!isErr)
-            {
-                params = {
-                    TableName: 'Experimental',
-                    Item: {
-                        username: 'user#' + req.body.username,
-                        identifier: 'requests',
-                        friends: []
-                    }
-                }
-            
-                dynamoClient.put(params, (err, data) => {
-                    console.log(response)
-                    if (err) res.send({
-                        success: false,
-                        message: err.message,
-                        data: {}
-                    })
-                    else res.send(response)
-                })
-            }
-        }
-    })
 })
 
 /*
