@@ -14,21 +14,62 @@ const dynamoClient = require('../dynamoClient')
         username - user's username
         email - user's email
 */
-router.post('/', (req, res) => {
-    let params = {
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        Password: req.body.password,
-        Username: req.body.username,
-        UserAttributes: [{
-            Name: 'email',
-            Value: req.body.email
-        }]
-    }
-    
-    let isErr = false;
-    let response = {}
+router.post('/', async (req, res) => {
+    try {
+        let params = {
+            ClientId: process.env.COGNITO_CLIENT_ID,
+            Password: req.body.password,
+            Username: req.body.username,
+            UserAttributes: [{
+                Name: 'email',
+                Value: req.body.email
+            }]
+        }
 
-    cognito.signUp(params, (err, data) => {
+        let response = await cognito.signUp(params).promise()
+
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                username: 'user#' + req.body.username,
+                identifier: 'requests',
+                friends: []
+            }
+        }
+
+        await dynamoClient.put(params).promise()
+
+        params = {
+            TableName: 'Statistics',
+            Item: {
+                username: req.body.username,
+                Achievements: {},
+                Statistics: {
+                    numberOfWins: 0,
+                    numberOfLosses: 0,
+                    currentWinStreak: 0,
+                    currentLossStreak: 0
+                }
+            }
+        }
+
+        await dynamoClient.put(params).promise
+
+        res.send({
+            success: true,
+            msg: 'User Created',
+            data: {}
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
+
+    , (err, data) => {
         if (err) {
             isErr = true;
             res.send({
