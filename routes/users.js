@@ -224,8 +224,14 @@ router.get('/', (req, res) => {
 /*
     Route: /users/:username/password/request
     Method: PUT
-    Purpose:
+    Purpose: This route takes the username of
+        the user that is updating their password
+        and sends an email to their registered email
+        containing a verification code that allows
+        them to set a new password.
     Query Parameters:
+        username - username of the user updating
+            the password
 */
 router.put('/:username/password/request', (req, res) => {
     const params = {
@@ -234,29 +240,53 @@ router.put('/:username/password/request', (req, res) => {
     }
 
     cognito.forgotPassword(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            msg: err.message,
+            data
+        })
     })
 })
 
 /*
     Route: /users/:username/password/update
     Method: PUT
-    Purpose:
+    Purpose: This route is used to update
+        a users password given their 
+        confirmation code.
     Query Parameters:
+        username - username of the user
+            updating their password
     Request Body:
+        confirmation_code - code sent in the
+            email to the user
+        new_password - the new password that user
+            user is setting
 */
 router.put('/:username/password/update', (req, res) => {
     const params = {
         ClientId: process.env.COGNITO_CLIENT_ID,
-        ConfirmationCode: req.params.confirmation_code,
+        ConfirmationCode: req.body.confirmation_code,
         Username: req.params.username,
-        Password: req.params.new_password
+        Password: req.body.new_password
     }
 
     cognito.confirmForgotPassword(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            msg: err.message,
+            data
+        })
     })
 })
 /*
