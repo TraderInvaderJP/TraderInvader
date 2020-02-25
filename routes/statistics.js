@@ -225,12 +225,11 @@ router.put('/:userid/achievements', (req, res) => {
 /*
    TEMPORARY FOR TESTING
 */
-
 router.put('/:GameID/Tester', (req, res) => {
     const params = {
         TableName: 'Experimental',
         Key: {
-            username: 'game',
+            username: 'game#active',
             identifier: req.params.GameID
         }
     }
@@ -238,48 +237,35 @@ router.put('/:GameID/Tester', (req, res) => {
     dynamoClient.get(params, async (err, data) => {
         if (err) res.send(err);
         else {
-            var userArray = data.Item.users;
-            console.log(userArray);
-            var userPortfolioArray = [];
+            var userArray = await data.Item.users;
             var moneyMadeByEachUser = [];
 
             for (let user of userArray)
             {
-                var someUser = await getUsersPortfolioValues(user, data.Item.identifier);
-                moneyMadeByEachUser.push(someUser);
+                moneyMadeByEachUser.push(await getUsersPortfolioValues(user, data.Item.identifier));
             }
 
+            // if (data.Item.winCondition == true)
+            // {
+
+            // }
+            // else
+            // {
+
+            // }
+            
+            // for (let user of userArray)
+            // {
+            //     moneyMadeByEachUser.push(await getUsersPortfolioValues(user, data.Item.identifier));
+            // }
+            let i = moneyMadeByEachUser.indexOf(Math.max(...moneyMadeByEachUser));
+            console.log(i);
             console.log(moneyMadeByEachUser);
-
-            // for (let userPortfolio of userPortfolioArray)
-            // {
-            //     var value = userPortfolio.Item.wallet;
-                
-            //     for (var stockSymbol in userPortfolio.Item.stocks) {
-            //         var stockValue = await getStockValue(stockSymbol);
-            //         value = value + stockValue;
-            //     }
-            //     moneyMadeByEachUser.push(value);
-            //     console.log("EXECUTION");
-            // }
-
-            // for (var step = 0; step < moneyMadeByEachUser.length; step++)
-            // {
-            //     if (moneyMadeByEachUser[step] < userPortfolioArray[step].Item.wallet)
-            //     {
-            //         moneyMadeByEachUser[step] = moneyMadeByEachUser[step] + userPortfolioArray[step].Item.wallet;
-            //     }
-            // }
-
-            // console.log(moneyMadeByEachUser);
 
             res.send(data)
         }
     })
-
-
 })
-
 
 /*
     Return the value of a users portfolio
@@ -294,29 +280,27 @@ async function getUsersPortfolioValues(username, gameID) {
     }
 
     var data = await dynamoClient.get(params, async (err, data) => {
-        const error = err;
-        if (err) console.log("error");
-        else {
-            var userValue = 0;
-            userValue = userValue + data.Item.wallet;
-
-            for (var stockSymbol in data.Item.stocks) {
-                var stockValue = await getStockValue(stockSymbol);
-                userValue = userValue + stockValue;
-            }
-            
-            return data;
-        }
+        if (err) console.log(err);
     }).promise()
 
-    return data;
+    var userValue = await data.Item.wallet;
+
+    userValue += await calculateStockValues(data.Item.stocks);
+    
+    return userValue;
+}
+
+async function calculateStockValues(stocks) {
+    var userValue = 0;
+    for (let stockSymbol in stocks) {
+        userValue += await getStockValue(stockSymbol) * stocks[stockSymbol];
+    }
+    return userValue;
 }
 
 async function getStockValue(stock) {
     let value = await axios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price/' + stock);
     return value.data.price;
 }
-
-
 
 module.exports = router
