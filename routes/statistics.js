@@ -23,19 +23,19 @@ router.put('/users/:userid/games', (req, res) => {
     dynamoClient.get(params, (err, data) => {
         if (err) res.send(err)
         else {
-            const oldData = (' ' + data.Item.Statistics).slice(1);
-            const obj = JSON.parse(data.Item.Statistics)
-            obj.numberOfWins = Number(obj.numberOfWins) + 1
-            obj.currentWinStreak = Number(obj.currentWinStreak) + 1
+            let oldData = data.Item.Statistics;
+            let obj = JSON.parse(data.Item.Statistics);
+            obj.numberOfWins = Number(obj.numberOfWins) + 1;
+            obj.currentWinStreak = Number(obj.currentWinStreak) + 1;
             obj.currentLossStreak = 0;
 
             const params = {
                 TableName: 'PlayerStats',
                 Item: {
                     username: req.params.userid,
-                    Statistics: JSON.stringify(obj)
+                    Statistics: obj
                 },
-                ConditionExpression: 'Statistics = :oldData',
+                ConditionExpression: 'not(Statistics = :oldData)',
                 ExpressionAttributeValues: {
                     ':oldData': oldData
                 }
@@ -80,7 +80,7 @@ router.put('/users/:userid', (req, res) => {
                 TableName: 'PlayerStats',
                 Item: {
                     username: req.params.userid,
-                    Statistics: JSON.stringify(obj)
+                    Statistics: obj
                 },
                 ConditionExpression: 'Statistics = :oldData',
                 ExpressionAttributeValues: {
@@ -125,7 +125,7 @@ router.put('/:userid', (req, res) => {
                 TableName: 'PlayerStats',
                 Item: {
                     username: req.params.userid,
-                    Statistics: JSON.stringify(obj)
+                    Statistics: obj
                 },
                 ConditionExpression: 'Statistics = :oldData',
                 ExpressionAttributeValues: {
@@ -205,7 +205,7 @@ router.put('/:userid/achievements', (req, res) => {
                 TableName: 'PlayerStats',
                 Item: {
                     username: req.params.userid,
-                    Achievments: JSON.stringify(obj),
+                    Achievements: obj,
                     Statistics: data.Item.Statistics
                 },
                 ConditionExpression: 'Achievments = :oldData',
@@ -245,22 +245,45 @@ router.put('/:GameID/Tester', (req, res) => {
                 moneyMadeByEachUser.push(await getUsersPortfolioValues(user, data.Item.identifier));
             }
 
-            // if (data.Item.winCondition == true)
-            // {
+            let winnerTrueIndex = moneyMadeByEachUser.indexOf(Math.max(...moneyMadeByEachUser));
+            let winnerFalseIndex = moneyMadeByEachUser.indexOf(Math.min(...moneyMadeByEachUser));
 
-            // }
-            // else
-            // {
+            if (data.Item.winCondition == true)
+            {
+                let index = 0;
 
-            // }
-            
-            // for (let user of userArray)
-            // {
-            //     moneyMadeByEachUser.push(await getUsersPortfolioValues(user, data.Item.identifier));
-            // }
-            let i = moneyMadeByEachUser.indexOf(Math.max(...moneyMadeByEachUser));
-            console.log(i);
-            console.log(moneyMadeByEachUser);
+                for (let user of userArray)
+                {
+                    if (index == winnerTrueIndex)
+                    {
+                        addWinToPlayerStats(user)
+                    }
+                    else
+                    {
+                        addLossToPlayerStats(user)
+                    }
+                    
+                    index++;
+                }
+            }
+            else
+            {
+                let index = 0;
+
+                for (let user of userArray)
+                {
+                    if (index == winnerFalseIndex)
+                    {
+                        addWinToPlayerStats(user)
+                    }
+                    else
+                    {
+                        addLossToPlayerStats(user)
+                    }
+                    
+                    index++;
+                }
+            }
 
             res.send(data)
         }
@@ -290,6 +313,7 @@ async function getUsersPortfolioValues(username, gameID) {
     return userValue;
 }
 
+//Add up the value of each stock 
 async function calculateStockValues(stocks) {
     var userValue = 0;
     for (let stockSymbol in stocks) {
@@ -298,9 +322,88 @@ async function calculateStockValues(stocks) {
     return userValue;
 }
 
+//Get the value for a specific stock
 async function getStockValue(stock) {
     let value = await axios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price/' + stock);
     return value.data.price;
+}
+
+/*
+    Add a win to a players stats
+*/
+function addWinToPlayerStats(userid) {
+    const params1 = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: userid
+        }
+    }
+    
+    dynamoClient.get(params1, (err, data) => {
+        if (err) console.log("HERE2" + err);
+        else {
+            let oldData = data.Item.Statistics;
+            let obj = data.Item.Statistics;
+            obj.numberOfWins = Number(obj.numberOfWins) + 1;
+            obj.currentWinStreak = Number(obj.currentWinStreak) + 1;
+            obj.currentLossStreak = 0;
+
+            const params2 = {
+                TableName: 'PlayerStats',
+                Item: {
+                    username: userid,
+                    Statistics: obj
+                },
+                ConditionExpression: 'not(Statistics = :oldData)',
+                ExpressionAttributeValues: {
+                    ':oldData': oldData
+                }
+            }
+        
+            dynamoClient.put(params2, function(err, data) {
+                if (err) console.log(err);
+            })
+        }
+    })
+}
+
+/*
+    Add Loss to players stats
+*/
+function addLossToPlayerStats(userid)  {
+    const params1 = {
+        TableName: 'PlayerStats',
+        Key: {
+            username: userid
+        }
+    }
+    
+    dynamoClient.get(params1, (err, data) => {
+        if (err) console.log("HERE1" + err);
+        else {
+            let oldData = data.Item.Statistics;
+            let obj = data.Item.Statistics;
+            obj.numberOfLosses = Number(obj.numberOfLosses) + 1;
+            obj.currentLossStreak = Number(obj.currentLossStreak) + 1;
+            obj.currentWinStreak = 0;
+
+            const params2 = {
+                TableName: 'PlayerStats',
+                Item: {
+                    username: userid,
+                    Statistics: obj
+                },
+                ConditionExpression: 'not(Statistics = :oldData)',
+                ExpressionAttributeValues: {
+                    ':oldData': oldData
+                }
+            }
+        
+            dynamoClient.put(params2, function(err, data) {
+                if (err) console.log(err);
+            })
+        }
+    })
 }
 
 module.exports = router
