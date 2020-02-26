@@ -125,7 +125,7 @@ router.post('/token', (req, res) => {
             'PASSWORD': req.body.password
         }
     }
-
+    
     cognito.initiateAuth(params, (err, data) => {
         if (err) {
             res.send({
@@ -160,30 +160,31 @@ router.post('/token', (req, res) => {
         access_token - new access token for getting
             user information
 */
-router.put('/token', (req, res) => {
-    const params = {
-        AuthFlow: 'REFRESH_TOKEN_AUTH',
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        AuthParameters: {
-            'REFRESH_TOKEN': req.body.refresh_token
+router.put('/token', async (req, res) => {
+    try {
+        const params = {
+            AuthFlow: 'REFRESH_TOKEN_AUTH',
+            ClientId: process.env.COGNITO_CLIENT_ID,
+            AuthParameters: {
+                'REFRESH_TOKEN': req.body.refresh_token
+            }
         }
-    }
-    
-    cognito.initiateAuth(params, (err, data) => {
-        const { AuthenticationResult } = data
-        if (err) {
-            res.send({
-                success: false,
-                message: data.message,
-                data: {}
-            })
-        }
-        else res.send({
+        
+        const { AuthenticationResult } = await cognito.initiateAuth(params).promise()
+
+        res.send({
             success: true,
             message: 'Access Token Updated',
             data: { access_token: AuthenticationResult.AccessToken }
         })
-    })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
