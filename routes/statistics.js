@@ -248,6 +248,7 @@ router.put('/:GameID/Tester', async (req, res) => {
 
             let winnerTrueIndex = moneyMadeByEachUser.indexOf(Math.max(...moneyMadeByEachUser));
             let winnerFalseIndex = moneyMadeByEachUser.indexOf(Math.min(...moneyMadeByEachUser));
+            var winnerUsername;
 
             if (data.Item.winCondition == true) {
                 let index = 0;
@@ -255,6 +256,7 @@ router.put('/:GameID/Tester', async (req, res) => {
                 for (let user of userArray) {
                     if (index == winnerTrueIndex) {
                         await addWinToPlayerStats(user)
+                        winnerUsername = userArray[index];
                     }
                     else {
                         await addLossToPlayerStats(user)
@@ -269,6 +271,7 @@ router.put('/:GameID/Tester', async (req, res) => {
                 for (let user of userArray) {
                     if (index == winnerFalseIndex) {
                         await addWinToPlayerStats(user);
+                        winnerUsername = userArray[index];
                     }
                     else {
                         await addLossToPlayerStats(user);
@@ -278,6 +281,7 @@ router.put('/:GameID/Tester', async (req, res) => {
                 }
             }
 
+            console.log(winnerUsername);
             res.send(data)  //return?
         }
     })
@@ -335,7 +339,7 @@ async function addWinToPlayerStats(userid) {
     dynamoClient.get(params1, (err, data) => {
         if (err) console.log(err);
         else {
-            let oldData = data.Item.Statistics;
+            let oldData = data.Item.Statistics; //recordData
             let obj = data.Item.Statistics;
             obj.numberOfWins = Number(obj.numberOfWins) + 1;
             obj.currentWinStreak = Number(obj.currentWinStreak) + 1;
