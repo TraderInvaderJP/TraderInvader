@@ -34,6 +34,53 @@ router.get('/:userid', (req, res) => {
     })
 })
 
+router.get('/:gameid/info', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            IndexName: 'game-index',
+            KeyConditionExpression: 'GSI_PK = :gameid AND GSI_SK = :sk',
+            ExpressionAttributeValues: {
+                ':gameid': req.params.gameid,
+                ':sk': 'game#active'
+            }
+        }
+    
+        let resData = {}
+
+        let data = await dynamoClient.query(params).promise()
+    
+        resData.game = data.Items[0]
+
+        params = {
+            TableName: 'Experimental',
+            IndexName: 'game-index',
+            KeyConditionExpression: 'GSI_PK = :gameid AND begins_with(GSI_SK, :sk)',
+            ExpressionAttributeValues: {
+                ':gameid': req.params.gameid,
+                ':sk': 'portfolio#'
+            }
+        }
+
+        data = await dynamoClient.query(params).promise()
+
+        resData.portfolios = data.Items
+
+        res.send({
+            success: true,
+            msg: 'Data Retrieved',
+            data: resData
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
+})
+
 /*
     Route: /games/:gameid/portfolios/:userid
     Method: GET
@@ -125,7 +172,9 @@ router.post('/:gameid', (req, res) => {
             winCondition: req.body.winCondition,
             wallet: req.body.wallet,
             users: req.body.users,
-            endTime: req.body.endTime
+            endTime: req.body.endTime,
+            GSI_PK: req.params.gameid,
+            GSI_SK: "game#active"
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
@@ -159,34 +208,52 @@ router.post('/:gameid', (req, res) => {
         initial_amount - the initial amount
             for players in the game
 */
-router.put('/:gameid/users/:userid', (req, res) => {
-    const params = {
-        TableName: 'Experimental',
-        Item: {
-            username: "user#" + req.params.userid,
-            identifier: "portfolio#" + req.params.gameid,
-            wallet: req.body.initial_amount,
-            stocks: {}
-        },
-        ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
-        ExpressionAttributeValues: {
-            ':username': "user#" + req.params.userid,
-            ':gameid': req.params.gameid
+router.put('/:gameid/users/:userid', async (req, res) => {
+    try{
+        let params = {
+            TableName: 'Experimental',
+            Item: {
+                username: "user#" + req.params.userid,
+                identifier: "portfolio#" + req.params.gameid,
+                wallet: req.body.initial_amount,
+                stocks: {},
+                GSI_PK: req.params.gameid,
+                GSI_SK: "portfolio#" + req.params.gameid
+            },
+            ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
+            ExpressionAttributeValues: {
+                ':username': "user#" + req.params.userid,
+                ':gameid': req.params.gameid
+            }
         }
-    }
+    
+        await dynamoClient.put(params).promise()
+        
+        params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'game#active',
+                identifier: req.params.gameid
+            },
+            UpdateExpression: 'SET users = list_append(users, :user)',
+            ExpressionAttributeValues: {
+                ':user': [req.params.userid]
+            }
+        }
 
-    dynamoClient.put(params, function(err, data) {
-        if (err) res.send({
+        res.send({
+            success: true,
+            msg: 'User added',
+            data: {}
+        })
+    }
+    catch (err) {
+        res.send({
             success: false,
             msg: err.message,
             data: {}
-        });
-        else res.send({
-            success: true,
-            msg: '',
-            data
         })
-    })
+    }
 })
 
 /*
