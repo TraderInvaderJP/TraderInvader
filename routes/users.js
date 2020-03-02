@@ -249,7 +249,7 @@ router.put('/:username/password/request', (req, res) => {
         })
         else res.send({
             success: true,
-            msg: err.message,
+            msg: 'Sent Password Request',
             data
         })
     })
@@ -286,7 +286,7 @@ router.put('/:username/password/update', (req, res) => {
         })
         else res.send({
             success: true,
-            msg: err.message,
+            msg: 'Password Updated',
             data
         })
     })
