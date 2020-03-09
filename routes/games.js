@@ -389,4 +389,50 @@ router.put('/:gameid/portfolios/:userid/sell', async (req, res) => {
     }
 })
 
+/*
+    Route: /portfolios/:userid/active
+    Method: GET
+    Purpose: This route is used to get all
+        active portfolios for a specific user
+    Query Parameters:
+        userid - user's username
+*/
+router.get('/portfolios/:userid/active', async (req, res) => {
+    var portfolios = [];
+    const params = {
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
+        ExpressionAttributeValues: {
+            ':username': "user#" + req.params.userid,
+            ':id': 'portfolio'
+        },
+    }
+    
+    var data = await dynamoClient.query(params, function(err, data) {
+        if (err) res.send(err);
+        else {
+            return data;
+        }
+    }).promise()
+
+    for (let userPortfolio of data.Items)
+    {
+        const params = {
+            TableName: 'Experimental',
+            Key: {
+                'username': 'game#active',
+                'identifier': userPortfolio.GSI_PK
+            },
+        }
+    
+        var result = await dynamoClient.get(params).promise()
+        if (Object.keys(result).length)
+        {
+            portfolios.push(result);
+        }
+    }
+
+    res.send(portfolios);
+})
+
 module.exports = router
