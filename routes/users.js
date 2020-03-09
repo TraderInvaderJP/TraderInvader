@@ -341,7 +341,7 @@ router.put('/:userid/requests/:friendid', (req, res) => {
         TableName: 'Experimental',
         Key: {
             username: 'user#' + req.params.userid,
-            identifier: 'friends'
+            identifier: 'requests'
         },
         UpdateExpression: 'SET friends = list_append(friends, :user)',
         ExpressionAttributeValues: {
