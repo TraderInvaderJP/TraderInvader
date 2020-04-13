@@ -26,11 +26,8 @@ router.post('/', async (req, res) => {
             }]
         }
 
-        console.log('making user')
+        await cognito.signUp(params).promise()
 
-        let response = await cognito.signUp(params).promise()
-
-        console.log('adding friends')
         params = {
             TableName: 'Experimental',
             Item: {
@@ -42,9 +39,8 @@ router.post('/', async (req, res) => {
 
         await dynamoClient.put(params).promise()
 
-        console.log('creating statistics')
         params = {
-            TableName: 'Statistics',
+            TableName: 'PlayerStats',
             Item: {
                 username: req.body.username,
                 Achievements: {},
@@ -57,7 +53,7 @@ router.post('/', async (req, res) => {
             }
         }
 
-        await dynamoClient.put(params).promise
+        await dynamoClient.put(params).promise()
 
         res.send({
             success: true,
