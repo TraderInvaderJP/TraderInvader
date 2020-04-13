@@ -26,8 +26,11 @@ router.post('/', async (req, res) => {
             }]
         }
 
+        console.log('making user')
+
         let response = await cognito.signUp(params).promise()
 
+        console.log('adding friends')
         params = {
             TableName: 'Experimental',
             Item: {
@@ -39,6 +42,7 @@ router.post('/', async (req, res) => {
 
         await dynamoClient.put(params).promise()
 
+        console.log('creating statistics')
         params = {
             TableName: 'Statistics',
             Item: {
@@ -368,24 +372,35 @@ router.put('/:userid/requests/:friendid', (req, res) => {
         userid - the user whose friends 
             you're retrieving
 */
-router.get('/:userid/confirmed', (req, res) => {
-    const params = {
-        TableName: 'Experimental',
-        KeyConditionExpression: 'username = :user AND identifier = :id',
-        ExpressionAttributeValues: {
-            ':user': 'user#' + req.params.userid,
-            ':id': 'friends'
+router.get('/:userid/confirmed', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            KeyConditionExpression: 'username = :user AND identifier = :id',
+            ExpressionAttributeValues: {
+                ':user': 'user#' + req.params.userid,
+                ':id': 'requests'
+            }
         }
+
+        const { Items } = await dynamoClient.query(params).promise()
+
+        let names = Items[0].friends.filter(item => item.confirmed === true).map(item => item.name)
+
+        res.send({
+            success: true,
+            message: 'Retrieved friends',
+            data: names
+        })
     }
-    
-    dynamoClient.query(params, (err, data) => {
-        if (err) res.send(err)
-        else {
-            const { Items } = data
-            let name = Items[0].friends.filter(item => item.confirmed === true).map(item => item.name)
-            res.send(name)
-        }
-    })
+    catch (err)
+    {
+        res.send({
+            success: false,
+            message: 'Failed to retrieve friends',
+            data: err
+        })
+    }
 })
 
 /*
@@ -397,24 +412,33 @@ router.get('/:userid/confirmed', (req, res) => {
         userid - the user that you want to 
             retrieve requests for
 */
-router.get('/:userid/requests', (req, res) => {
-    const params = {
-        TableName: 'Experimental',
-        KeyConditionExpression: 'username = :user AND identifier = :id',
-        ExpressionAttributeValues: {
-            ':user': 'user#' + req.params.userid,
-            ':id': 'friends'
+router.get('/:userid/requests', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            KeyConditionExpression: 'username = :user AND identifier = :id',
+            ExpressionAttributeValues: {
+                ':user': 'user#' + req.params.userid,
+                ':id': 'requests'
+            }
         }
+
+        const { Items } = await dynamoClient.query(params).promise()
+
+        let names = Items[0].friends.filter(item => item.confirmed === false).map(item => item.name)
+        res.send({
+            success: true,
+            message: 'Retrieved requests',
+            data: names
+        })
+    } 
+    catch(err) {
+        res.send({
+            success: false,
+            message: 'Failed to retrieve requests',
+            data: err
+        })
     }
-    
-    dynamoClient.query(params, (err, data) => {
-        if (err) res.send(err)
-        else {
-            const { Items } = data
-            let name = Items[0].friends.filter(item => item.confirmed === false).map(item => item.name)
-            res.send(name)
-        }
-    })
 })
 
 /*
@@ -435,7 +459,7 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
             TableName: 'Experimental',
             Key: {
                 username: 'user#' + req.params.userid,
-                identifier: 'friends'
+                identifier: 'requests'
             }
         }
 
@@ -467,7 +491,11 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
     }
     catch(err)
     {
-        res.send(err)
+        res.send({
+            success: false,
+            message: 'Error confirming user',
+            data: {}
+        })
     }
 })
 
