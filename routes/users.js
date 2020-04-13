@@ -2,6 +2,7 @@ const router = require('express').Router()
 const uuidv4 = require('uuid/v4')
 const AWS = require('aws-sdk')
 const cognito = new AWS.CognitoIdentityServiceProvider()
+const dynamoClient = require('../dynamoClient')
 
 /*
     Route: /users
@@ -13,31 +14,64 @@ const cognito = new AWS.CognitoIdentityServiceProvider()
         username - user's username
         email - user's email
 */
-router.post('/', (req, res) => {
-    const params = {
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        Password: req.body.password,
-        Username: req.body.username,
-        UserAttributes: [{
-            Name: 'email',
-            Value: req.body.email
-        }]
-    }
-    
-    cognito.signUp(params, (err, data) => {
-        if (err) {
-            res.send({
-                success: false,
-                message: err.message,
-                data: {}
-            })
+router.post('/', async (req, res) => {
+    try {
+        let params = {
+            ClientId: process.env.COGNITO_CLIENT_ID,
+            Password: req.body.password,
+            Username: req.body.username,
+            UserAttributes: [{
+                Name: 'email',
+                Value: req.body.email
+            }]
         }
-        else res.send({
+
+        console.log('making user')
+
+        let response = await cognito.signUp(params).promise()
+
+        console.log('adding friends')
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                username: 'user#' + req.body.username,
+                identifier: 'requests',
+                friends: []
+            }
+        }
+
+        await dynamoClient.put(params).promise()
+
+        console.log('creating statistics')
+        params = {
+            TableName: 'Statistics',
+            Item: {
+                username: req.body.username,
+                Achievements: {},
+                Statistics: {
+                    numberOfWins: 0,
+                    numberOfLosses: 0,
+                    currentWinStreak: 0,
+                    currentLossStreak: 0
+                }
+            }
+        }
+
+        await dynamoClient.put(params).promise
+
+        res.send({
             success: true,
-            message: "User Created",
+            msg: 'User Created',
             data: {}
         })
-    })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
@@ -95,7 +129,7 @@ router.post('/token', (req, res) => {
             'PASSWORD': req.body.password
         }
     }
-
+    
     cognito.initiateAuth(params, (err, data) => {
         if (err) {
             res.send({
@@ -130,30 +164,31 @@ router.post('/token', (req, res) => {
         access_token - new access token for getting
             user information
 */
-router.put('/token', (req, res) => {
-    const params = {
-        AuthFlow: 'REFRESH_TOKEN_AUTH',
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        AuthParameters: {
-            'REFRESH_TOKEN': req.body.refresh_token
+router.put('/token', async (req, res) => {
+    try {
+        const params = {
+            AuthFlow: 'REFRESH_TOKEN_AUTH',
+            ClientId: process.env.COGNITO_CLIENT_ID,
+            AuthParameters: {
+                'REFRESH_TOKEN': req.body.refresh_token
+            }
         }
-    }
-    
-    cognito.initiateAuth(params, (err, data) => {
-        const { AuthenticationResult } = data
-        if (err) {
-            res.send({
-                success: false,
-                message: data.message,
-                data: {}
-            })
-        }
-        else res.send({
+        
+        const { AuthenticationResult } = await cognito.initiateAuth(params).promise()
+
+        res.send({
             success: true,
             message: 'Access Token Updated',
             data: { access_token: AuthenticationResult.AccessToken }
         })
-    })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
@@ -195,8 +230,14 @@ router.get('/', (req, res) => {
 /*
     Route: /users/:username/password/request
     Method: PUT
-    Purpose:
+    Purpose: This route takes the username of
+        the user that is updating their password
+        and sends an email to their registered email
+        containing a verification code that allows
+        them to set a new password.
     Query Parameters:
+        username - username of the user updating
+            the password
 */
 router.put('/:username/password/request', (req, res) => {
     const params = {
@@ -205,29 +246,53 @@ router.put('/:username/password/request', (req, res) => {
     }
 
     cognito.forgotPassword(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            msg: 'Sent Password Request',
+            data
+        })
     })
 })
 
 /*
     Route: /users/:username/password/update
     Method: PUT
-    Purpose:
+    Purpose: This route is used to update
+        a users password given their 
+        confirmation code.
     Query Parameters:
+        username - username of the user
+            updating their password
     Request Body:
+        confirmation_code - code sent in the
+            email to the user
+        new_password - the new password that user
+            user is setting
 */
 router.put('/:username/password/update', (req, res) => {
     const params = {
         ClientId: process.env.COGNITO_CLIENT_ID,
-        ConfirmationCode: req.params.confirmation_code,
+        ConfirmationCode: req.body.confirmation_code,
         Username: req.params.username,
-        Password: req.params.new_password
+        Password: req.body.new_password
     }
 
     cognito.confirmForgotPassword(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+        else res.send({
+            success: true,
+            msg: 'Password Updated',
+            data
+        })
     })
 })
 /*
@@ -275,50 +340,71 @@ router.put('/:username/password', (req, res) => {
         friendid - the id of the user sending the 
             request
 */
-router.put('/:userid/friends/:friendid', (req, res) => {
+router.put('/:userid/requests/:friendid', (req, res) => {
     const params = {
-        TableName: 'Requests',
-        Item: {
-            username: req.params.userid,
-            friendname: req.params.friendid
+        TableName: 'Experimental',
+        Key: {
+            username: 'user#' + req.params.userid,
+            identifier: 'requests'
+        },
+        UpdateExpression: 'SET friends = list_append(friends, :user)',
+        ExpressionAttributeValues: {
+            ':user': [{
+                name: req.params.friendid,
+                confirmed: false
+            }]
         },
         ReturnValues: "ALL_NEW"
     }
 
-    dynamoClient.put(params, (err, data) => {
+    dynamoClient.update(params, (err, data) => {
         if (err) res.send(err)
         else res.send(data)
     })
 })
 
 /*
-    Route: /users/:userid/friend
+    Route: /users/:userid/confirmed
     Method: GET
     Purpose: This route is used to get all
-        friends of a given user
+        confirmed friends of a given user
     Query Parameters:
         userid - the user whose friends 
             you're retrieving
 */
-router.get('/:userid/friends/', (req, res) => {
-    const params = {
-        TableName: 'Friends',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
-        ExpressionAttributeValues: {
-            ':username': req.params.userid
-        },
-        ProjectionExpression: 'friendname'
-    }
+router.get('/:userid/confirmed', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            KeyConditionExpression: 'username = :user AND identifier = :id',
+            ExpressionAttributeValues: {
+                ':user': 'user#' + req.params.userid,
+                ':id': 'requests'
+            }
+        }
 
-    dynamoClient.query(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
-    })
+        const { Items } = await dynamoClient.query(params).promise()
+
+        let names = Items[0].friends.filter(item => item.confirmed === true).map(item => item.name)
+
+        res.send({
+            success: true,
+            message: 'Retrieved friends',
+            data: names
+        })
+    }
+    catch (err)
+    {
+        res.send({
+            success: false,
+            message: 'Failed to retrieve friends',
+            data: err
+        })
+    }
 })
 
 /*
-    Route: /users/:userid/friends/requests
+    Route: /users/:userid/requests
     Method: GET
     Purpose: This route is used to get all
         friends requests that a user has
@@ -326,21 +412,33 @@ router.get('/:userid/friends/', (req, res) => {
         userid - the user that you want to 
             retrieve requests for
 */
-router.get('/:userid/friends/requests', (req, res) => {
-    const params = {
-        TableName: 'Requests',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
-        ExpressionAttributeValues: {
-            ':username': req.params.userid
-        },
-        ProjectionExpression: 'friendname'
-    }
+router.get('/:userid/requests', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            KeyConditionExpression: 'username = :user AND identifier = :id',
+            ExpressionAttributeValues: {
+                ':user': 'user#' + req.params.userid,
+                ':id': 'requests'
+            }
+        }
 
-    dynamoClient.query(params, (err, data) => {
-        if (err) res.send(err)
-        else res.send(data)
-    })
+        const { Items } = await dynamoClient.query(params).promise()
+
+        let names = Items[0].friends.filter(item => item.confirmed === false).map(item => item.name)
+        res.send({
+            success: true,
+            message: 'Retrieved requests',
+            data: names
+        })
+    } 
+    catch(err) {
+        res.send({
+            success: false,
+            message: 'Failed to retrieve requests',
+            data: err
+        })
+    }
 })
 
 /*
@@ -355,36 +453,50 @@ router.get('/:userid/friends/requests', (req, res) => {
         friendid - the user who you're adding
             as a friend
 */
-router.put('/:userid/friends/:friendid', (req, res) => {
-    const requestsParams = {
-        TableName: 'Requests',
-    }
+router.put('/:userid/friends/:friendid', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'requests'
+            }
+        }
 
-    dynamoClient.delete(requestsParams, (err, data) => {
-        if (err) res.send({
+        let data = await dynamoClient.get(params).promise()
+
+        data = data.Item
+
+        data.friends = data.friends.map(item => {
+            if (item.name == req.params.friendid)
+                item.confirmed = true
+            
+            return item
+        })
+
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                ...data
+            }
+        }
+
+        data = await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: '',
+            data
+        })
+    }
+    catch(err)
+    {
+        res.send({
             success: false,
-            msg: err.message,
+            message: 'Error confirming user',
             data: {}
         })
-        else {
-            const friendsParams = {
-                TableName: 'Friends',
-            }
-        
-            dynamoClient.put(friendsParams, (err, data) => {
-                if (err) res.send({
-                        success: false,
-                        msg: err.message,
-                        data: {}
-                    })
-                else res.send({
-                    success: true,
-                    msg: '',
-                    data: {}
-                })
-            })
-        }
-    })
+    }
 })
 
 module.exports = router

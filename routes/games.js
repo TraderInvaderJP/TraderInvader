@@ -11,27 +11,74 @@ const dynamoClient = require('../dynamoClient')
 */
 router.get('/:userid', (req, res) => {
     const params = {
-        TableName: 'Portfolio',
-        IndexName: 'username-index',
-        KeyConditionExpression: 'username = :username',
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
         ExpressionAttributeValues: {
-            ':username': req.params.userid
+            ':username': "user#" + req.params.userid,
+            ':id': 'portfolio'
         },
-        ProjectionExpression: 'gameid'
+        ProjectionExpression: 'identifier'
     }
     
     dynamoClient.query(params, function(err, data) {
         if (err) res.send(err);
         else {
-            let gameList = data.Items.map(item => item.gameid)
+            let gameList = data.Items;
 
             res.send({
                 success: true,
                 msg: '',
-                data: gameList
+                data: gameList.map(item => item.identifier.split('#')[1])
             })
         }
     })
+})
+
+router.get('/:gameid/info', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            IndexName: 'game-index',
+            KeyConditionExpression: 'GSI_PK = :gameid AND GSI_SK = :sk',
+            ExpressionAttributeValues: {
+                ':gameid': req.params.gameid,
+                ':sk': 'game#active'
+            }
+        }
+    
+        let resData = {}
+
+        let data = await dynamoClient.query(params).promise()
+    
+        resData.game = data.Items[0]
+
+        params = {
+            TableName: 'Experimental',
+            IndexName: 'game-index',
+            KeyConditionExpression: 'GSI_PK = :gameid AND begins_with(GSI_SK, :sk)',
+            ExpressionAttributeValues: {
+                ':gameid': req.params.gameid,
+                ':sk': 'portfolio#'
+            }
+        }
+
+        data = await dynamoClient.query(params).promise()
+
+        resData.portfolios = data.Items
+
+        res.send({
+            success: true,
+            msg: 'Data Retrieved',
+            data: resData
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
@@ -43,27 +90,32 @@ router.get('/:userid', (req, res) => {
         gameid - the game id for the portfolio
         userid - the user's name
 */
-router.get('/:gameid/portfolios/:userid', (req, res) => {
-    const params = {
-        TableName: 'Portfolio',
-        Key: {
-            username: req.params.userid,
-            gameid: req.params.gameid,
+router.get('/:gameid/portfolios/:userid', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            Key: {
+                'username': 'user#' + req.params.userid,
+                'identifier': 'portfolio#' + req.params.gameid
+            },
+            ProjectionExpression: 'wallet, stocks'
         }
-    }
 
-    dynamoClient.get(params, (err, data) => {
-        if (err) res.send({
+        const { Item } = await dynamoClient.get(params).promise()
+
+        res.send({
+            success: true,
+            msg: 'Retrieved portfolio',
+            data: Item
+        })
+    }
+    catch(err) {
+        res.send({
             success: false,
             msg: err.message,
             data: {}
         })
-        else res.send({
-            success: true,
-            msg: '',
-            data: data.Item
-        })
-    })
+    }
 })
 
 /*
@@ -77,7 +129,7 @@ router.get('/:gameid/portfolios/:userid', (req, res) => {
 */
 router.get('/:gameid/portfolios/', (req, res) => {
     const params = {
-        TableName: 'Portfolio',
+        TableName: 'Experimental',
         IndexName: 'gameid-index',
         KeyConditionExpression: 'gameid = :gameid',
         ExpressionAttributeValues: {
@@ -104,16 +156,25 @@ router.get('/:gameid/portfolios/', (req, res) => {
     Query parameters:
         gameid - the value used to identify the game being added
     Request body:
-        game_data - a JSON object containing all of the game information
-        end_time - A date respented as an EPOCH timestamp (number)
+        winCondition - A boolean saying what the win condition is
+        wallet - A number saying how much money each player gets
+            at the start of the game
+        users - An array containing the users in the game (probably
+            just the user that created it)
+        endTime - A date respented as an EPOCH timestamp (number)
 */
 router.post('/:gameid', (req, res) => {
     const params = {
-        TableName: 'Games',
+        TableName: 'Experimental',
         Item: {
-            GameID: req.params.gameid,
-            data: req.body.game_data,
-            endTime: req.body.end_time
+            username: "game#active",
+            identifier: req.params.gameid,
+            winCondition: req.body.winCondition,
+            wallet: req.body.wallet,
+            users: req.body.users,
+            endTime: req.body.endTime,
+            GSI_PK: req.params.gameid,
+            GSI_SK: "game#active"
         },
         ConditionExpression: 'NOT contains(GameID, :GameID)',
         ExpressionAttributeValues: {
@@ -122,8 +183,16 @@ router.post('/:gameid', (req, res) => {
     }
 
     dynamoClient.put(params, function(err, data) {
-        if (err) res.send(err);
-        else res.send(data)
+        if (err) res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        });
+        else res.send({
+            success: true,
+            msg: 'Created Game',
+            data
+        })
     })
 })
 
@@ -139,34 +208,52 @@ router.post('/:gameid', (req, res) => {
         initial_amount - the initial amount
             for players in the game
 */
-router.put('/:gameid/users/:userid', (req, res) => {
-    const params = {
-        TableName: 'Portfolio',
-        Item: {
-            username: req.params.userid,
-            gameid: req.params.gameid,
-            wallet: req.body.initial_amount,
-            stocks: {}
-        },
-        ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
-        ExpressionAttributeValues: {
-            ':username': req.params.userid,
-            ':gameid': req.params.gameid
+router.put('/:gameid/users/:userid', async (req, res) => {
+    try{
+        let params = {
+            TableName: 'Experimental',
+            Item: {
+                username: "user#" + req.params.userid,
+                identifier: "portfolio#" + req.params.gameid,
+                wallet: req.body.initial_amount,
+                stocks: {},
+                GSI_PK: req.params.gameid,
+                GSI_SK: "portfolio#" + req.params.gameid
+            },
+            ConditionExpression: 'NOT contains(username, :username) AND NOT contains(gameid, :gameid)',
+            ExpressionAttributeValues: {
+                ':username': "user#" + req.params.userid,
+                ':gameid': req.params.gameid
+            }
         }
-    }
+    
+        await dynamoClient.put(params).promise()
+        
+        params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'game#active',
+                identifier: req.params.gameid
+            },
+            UpdateExpression: 'SET users = list_append(users, :user)',
+            ExpressionAttributeValues: {
+                ':user': [req.params.userid]
+            }
+        }
 
-    dynamoClient.put(params, function(err, data) {
-        if (err) res.send({
+        res.send({
+            success: true,
+            msg: 'User added',
+            data: {}
+        })
+    }
+    catch (err) {
+        res.send({
             success: false,
             msg: err.message,
             data: {}
-        });
-        else res.send({
-            success: true,
-            msg: '',
-            data
         })
-    })
+    }
 })
 
 /*
@@ -182,83 +269,60 @@ router.put('/:gameid/users/:userid', (req, res) => {
         count - the number of stocks you're buying
         value - current stock price of the stock
 */
-router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
-    let params = {
-        TableName: 'Portfolio',
-        Key: {
-            username: req.params.userid,
-            gameid: req.params.gameid
+router.put('/:gameid/portfolios/:userid/buy', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'portfolio#' + req.params.gameid
+            }
         }
+
+        const { symbol, count, value } = req.body
+
+        let { Item } = await dynamoClient.get(params).promise()
+
+        if(Item.stocks[symbol])
+            Item.stocks[symbol] += count
+        else
+            Item.stocks[symbol] = count
+
+        if(Item.wallet - (count * value) < 0) {
+            let err = { message: 'Insufficient funds' }
+
+            throw err
+        }
+        else
+            Item.wallet -= (count * value)
+
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                ...Item
+            }
+        }
+
+        data = await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            msg: 'Stock purchased',
+            data
+        })
     }
-    
-    const { symbol, count, value } = req.body;
-
-    let isChanged = false;
-    let resData = {}
-
-    dynamoClient.get(params, (err, data) => {
-        if (err) {
-            isChanged = true;
-            
-            resData = {
-                success: false,
-                msg: err.message,
-                data: {}
-            }
-        }   
-        else {
-            let temp = data.Item;
-
-            if(temp.stocks[symbol])
-                temp.stocks[symbol] += count;
-            else    
-                temp.stocks[symbol] = count;
-
-            if (temp.wallet - (count * value) < 0) {
-                isChanged = true;
-
-                resData = {
-                    success: false,
-                    msg: 'Not enough funds',
-                    data: {}
-                }
-            }
-            else
-                temp.wallet -= count * value;
-
-            if(!isChanged) {
-                params = {
-                    TableName: 'Portfolio',
-                    Item: temp
-                }
-
-                dynamoClient.put(params, (err, data) => {
-                    if (err) {
-                        resData = {
-                            success: false,
-                            msg: err.message,
-                            data: {}
-                        }
-                    }
-                    else {
-                        resData = {
-                            success: true,
-                            msg: 'Bought Stock',
-                            data
-                        }
-                    }
-
-                    res.send(resData)
-                })
-            }
-            else
-                res.send(resData)
-        }
-    })
+    catch (err)
+    {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
-    Route: /:gameid/portfolios/:userid/sell
+    Route: /games/:gameid/portfolios/:userid/sell
     Method: PUT
     Purpose: This route is used to buy a stock for a 
         specific user's portfolio in a specific game
@@ -270,88 +334,105 @@ router.put('/:gameid/portfolios/:userid/buy', (req, res) => {
         count - the number of stocks you're selling
         value - the value of the stock you're selling
 */
-router.put('/:gameid/portfolios/:userid/sell', (req, res) => {
-    let params = {
-        TableName: 'Portfolio',
-        Key: {
-            username: req.params.userid,
-            gameid: req.params.gameid
+router.put('/:gameid/portfolios/:userid/sell', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'portfolio#' + req.params.gameid
+            }
         }
+
+        const { symbol, value, count } = req.body
+
+        let { Item } = await dynamoClient.get(params).promise()
+
+        if(Item.stocks[symbol]) {
+            if(Item.stocks[symbol] - count < 0) {
+                const err = { message: 'Not enough stock' }
+
+                throw err
+            }
+            else 
+                Item.stocks[symbol] -= count
+        }
+        else {
+            const err = { message: 'Don\'t own this symbol' }
+
+            throw err
+        }
+
+        Item.wallet += count * value
+
+        params = {
+            TableName: 'Experimental',
+            Item: {
+                ...Item
+            }
+        }
+
+        data = await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            msg: 'Stock sold',
+            data
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            msg: err.message,
+            data: {}
+        })
+    }
+})
+
+/*
+    Route: /portfolios/:userid/active
+    Method: GET
+    Purpose: This route is used to get all
+        active portfolios for a specific user
+    Query Parameters:
+        userid - user's username
+*/
+router.get('/portfolios/:userid/active', async (req, res) => {
+    var portfolios = [];
+    const params = {
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
+        ExpressionAttributeValues: {
+            ':username': "user#" + req.params.userid,
+            ':id': 'portfolio'
+        },
     }
     
-    const { symbol, count, value } = req.body;
-
-    let isChanged = false;
-    let resData = {}
-
-    dynamoClient.get(params, (err, data) => {
-        if (err) {
-            isChanged = true;
-            
-            resData = {
-                success: false,
-                msg: err.message,
-                data: {}
-            }
-        }   
+    var data = await dynamoClient.query(params, function(err, data) {
+        if (err) res.send(err);
         else {
-            let temp = data.Item;
-
-            if(temp.stocks[symbol]) {
-                if(temp.stocks[symbol] - count < 0) {
-                    isChanged = true;
-
-                    resData = {
-                        success: false,
-                        msg: 'Don\'t have enough stocks',
-                        data: {}
-                    }
-                }
-                else
-                    temp.stocks[symbol] -= count;
-            }
-            else {
-                isChanged = true;
-
-                resData = {
-                    success: false,
-                    msg: 'Don\'t own this stock',
-                    data: {}
-                }
-            }
-                
-            if(!isChanged)
-                temp.wallet += count * value;
-
-            if(!isChanged) {
-                params = {
-                    TableName: 'Portfolio',
-                    Item: temp
-                }
-
-                dynamoClient.put(params, (err, data) => {
-                    if (err) {
-                        resData = {
-                            success: false,
-                            msg: err.message,
-                            data: {}
-                        }
-                    }
-                    else {
-                        resData = {
-                            success: true,
-                            msg: 'Sold stock',
-                            data
-                        }
-                    }
-
-                    res.send(resData)
-                })
-            }
-            else
-                res.send(resData)
+            return data;
         }
-    })
+    }).promise()
+
+    for (let userPortfolio of data.Items)
+    {
+        const params = {
+            TableName: 'Experimental',
+            Key: {
+                'username': 'game#active',
+                'identifier': userPortfolio.GSI_PK
+            },
+        }
+    
+        var result = await dynamoClient.get(params).promise()
+        if (Object.keys(result).length)
+        {
+            portfolios.push(result);
+        }
+    }
+
+    res.send(portfolios);
 })
 
 module.exports = router
