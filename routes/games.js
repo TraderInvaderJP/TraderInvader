@@ -226,6 +226,8 @@ router.put('/:gameid/users/:userid', async (req, res) => {
     
         await dynamoClient.put(params).promise()
 
+        await dynamoClient.update(params).promise()
+
         res.send({
             success: true,
             msg: 'User added',
