@@ -200,8 +200,6 @@ router.get('/:gameid/portfolios/', (req, res) => {
         winCondition - A boolean saying what the win condition is
         wallet - A number saying how much money each player gets
             at the start of the game
-        users - An array containing the users in the game (probably
-            just the user that created it)
         endTime - A date respented as an EPOCH timestamp (number)
 */
 router.post('/:gameid', (req, res) => {
@@ -212,7 +210,6 @@ router.post('/:gameid', (req, res) => {
             identifier: req.params.gameid,
             winCondition: req.body.winCondition,
             wallet: req.body.wallet,
-            users: req.body.users,
             endTime: req.body.endTime,
             GSI_PK: req.params.gameid,
             GSI_SK: "game#active"
@@ -269,18 +266,6 @@ router.put('/:gameid/users/:userid', async (req, res) => {
         }
     
         await dynamoClient.put(params).promise()
-        
-        params = {
-            TableName: 'Experimental',
-            Key: {
-                username: 'game#active',
-                identifier: req.params.gameid
-            },
-            UpdateExpression: 'SET users = list_append(users, :user)',
-            ExpressionAttributeValues: {
-                ':user': [req.params.userid]
-            }
-        }
 
         await dynamoClient.update(params).promise()
 
