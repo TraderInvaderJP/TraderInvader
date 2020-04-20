@@ -64,7 +64,7 @@ router.get('/:gameid/info', async (req, res) => {
         }
 
         data = await dynamoClient.query(params).promise()
-
+        
         let allStocks = []
 
         data.Items.forEach(item => {
@@ -96,12 +96,12 @@ router.get('/:gameid/info', async (req, res) => {
 
             temp.username = item.username.split('#')[1]
 
-            Object.entries(item.stocks).forEach(stock => stockValue += stockData[stock[0]] * stock[1])
+            Object.entries(item.stocks).forEach(stock => stockValue += stockData[stock[0]] * stock[1].count)
 
             temp.wallet = item.wallet
             temp.portfolio = stockValue
             temp.total = item.wallet + stockValue
-            
+
             scoreboard.push(temp)
         })
 
@@ -311,10 +311,15 @@ router.put('/:gameid/portfolios/:userid/buy', async (req, res) => {
 
         let { Item } = await dynamoClient.get(params).promise()
 
-        if(Item.stocks[symbol])
-            Item.stocks[symbol] += count
+        if(Item.stocks[symbol]) {
+            Item.stocks[symbol].count += count
+            Item.stocks[symbol].purchased = value
+        }
         else
-            Item.stocks[symbol] = count
+            Item.stocks[symbol] = {
+                purchased: value,
+                count
+            }
 
         if(Item.wallet - (count * value) < 0) {
             let err = { message: 'Insufficient funds' }
@@ -383,7 +388,7 @@ router.put('/:gameid/portfolios/:userid/sell', async (req, res) => {
                 throw err
             }
             else 
-                Item.stocks[symbol] -= count
+                Item.stocks[symbol].count -= count
         }
         else {
             const err = { message: 'Don\'t own this symbol' }
