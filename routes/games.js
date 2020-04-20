@@ -1,5 +1,6 @@
 const router = require('express').Router()
 const dynamoClient = require('../dynamoClient')
+const axios = require('axios')
 
 /*
     Route: /games/:userid
@@ -64,7 +65,47 @@ router.get('/:gameid/info', async (req, res) => {
 
         data = await dynamoClient.query(params).promise()
 
-        resData.portfolios = data.Items
+        let allStocks = []
+
+        data.Items.forEach(item => {
+            allStocks = [...allStocks, ...Object.keys(item.stocks)]
+        })
+
+        let uniqueStocks = [...new Set(allStocks)]
+        let stockData = {}
+        
+        if(uniqueStocks.length === 1)
+        {
+            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${uniqueStocks[0]}`)
+            
+            stockData[data.symbol] = data.price
+        }
+        else
+        {
+            const stockNames = uniqueStocks.join(',')
+            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${stockNames}`)
+
+            data.companiesPriceList.forEach(item => stockData[item.symbol] = item.price)
+        }
+
+        let scoreboard = []
+
+        data.Items.forEach(item => {
+            let temp = {}
+            let stockValue = 0
+
+            temp.username = item.username.split('#')[1]
+
+            Object.entries(item.stocks).forEach(stock => stockValue += stockData[stock[0]] * stock[1])
+
+            temp.wallet = item.wallet
+            temp.portfolio = stockValue
+            temp.total = item.wallet + stockValue
+            
+            scoreboard.push(temp)
+        })
+
+        resData.scoreboard = scoreboard
 
         res.send({
             success: true,
