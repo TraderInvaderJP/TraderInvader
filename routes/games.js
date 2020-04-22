@@ -38,7 +38,7 @@ router.get('/:userid', (req, res) => {
 /*
     Route: /games/:userid
     Method: GET
-    Purpose: This route is used to get all active games
+    Purpose: This route is used to get all ACTIVE games
         for a specific user
     Query Parameters:
         userid - user's username
@@ -66,6 +66,55 @@ router.get('/:userid/active', async (req, res) => {
             Key: {
                 identifier: game,
                 username: 'game#active'
+            }
+        }
+
+        let data2 = await dynamoClient.get(params2).promise();
+ 
+        if (data2.Item != null)
+        {
+            activeGameList.push(data2.Item.identifier); 
+        }
+    }
+
+    res.send({
+        success: true,
+        msg: '',
+        data: activeGameList
+    })
+})
+
+/*
+    Route: /games/:userid
+    Method: GET
+    Purpose: This route is used to get all INACTIVE games
+        for a specific user
+    Query Parameters:
+        userid - user's username
+*/
+router.get('/:userid/inactive', async (req, res) => {
+    const params = {
+        TableName: 'Experimental',
+        KeyConditionExpression: 'username = :username and begins_with(identifier, :id)',
+        ExpressionAttributeValues: {
+            ':username': "user#" + req.params.userid,
+            ':id': 'portfolio'
+        },
+        ProjectionExpression: 'identifier'
+    }
+    
+    let data = await dynamoClient.query(params).promise();
+
+    let activeGameList = [];
+    let gameList = data.Items;
+
+    for (var game of gameList.map(item => item.identifier.split('#')[1]))
+    {
+        let params2 = {
+            TableName: 'Experimental',
+            Key: {
+                identifier: game,
+                username: 'game#inactive'
             }
         }
 
