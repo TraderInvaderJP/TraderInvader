@@ -481,7 +481,7 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
 
         res.send({
             success: true,
-            message: '',
+            message: 'Friend confirmed',
             data
         })
     }
