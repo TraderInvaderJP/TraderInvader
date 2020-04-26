@@ -11,27 +11,30 @@ const dynamoClient = require('../dynamoClient');
     Request body:
         none
 */
-router.get('/users/:userid/statistics', (req, res) => {
-    const params = {
-        TableName: 'PlayerStats',
-        Key: {
-            username: req.params.userid
+router.get('/:userid/statistics', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'PlayerStats',
+            Key: {
+                username: req.params.userid
+            }
         }
-    }
-    
-    dynamoClient.get(params, (err, data) => {
-        if (err) res.send({
-            success: false,
-            msg: err.message,
-            data: {}
-        })
-        else 
+
+        const { Item } = await dynamoClient.get(params).promise()
+
         res.send({
             success: true,
-            msg: '',
-            data: data.Item.Statistics
+            message: 'Statistics retrieved',
+            data: Item.Statistics
         })
-    })
+    }
+    catch(err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
 })
 
 /*
@@ -44,27 +47,30 @@ router.get('/users/:userid/statistics', (req, res) => {
     Request body:
         none
 */
-router.get('/users/:userid/achievements', (req, res) => {
-    const params = {
-        TableName: 'PlayerStats',
-        Key: {
-            username: req.params.userid
+router.get('/:userid/achievements', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'PlayerStats',
+            Key: {
+                username: req.params.userid
+            }
         }
-    }
-    
-    dynamoClient.get(params, (err, data) => {
-        if (err) res.send({
-            success: false,
-            msg: err.message,
-            data: {}
-        })
-        else 
+
+        const { Item } = await dynamoClient.get(params).promise()
+
         res.send({
             success: true,
-            msg: '',
-            data: data.Item.Achievements
+            message: 'Achievements retrieved',
+            data: Item.Achievements
         })
-    })
+    }
+    catch(err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
 })
 
 module.exports = router
