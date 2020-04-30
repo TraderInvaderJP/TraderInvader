@@ -269,10 +269,11 @@ router.get('/:gameid/portfolios/:userid', async (req, res) => {
 router.get('/:gameid/portfolios/', (req, res) => {
     const params = {
         TableName: 'Experimental',
-        IndexName: 'gameid-index',
-        KeyConditionExpression: 'gameid = :gameid',
+        IndexName: 'game-index',
+        KeyConditionExpression: 'GSI_PK = :gameid AND GSI_SK = :portfolio',
         ExpressionAttributeValues: {
-            ':gameid': req.params.gameid
+            ':gameid': req.params.gameid,
+            ':portfolio': 'portfolio#' + req.params.gameid
         },
         ProjectionExpression: 'stocks, username, wallet'
     }
