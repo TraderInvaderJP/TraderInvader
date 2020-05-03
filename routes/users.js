@@ -495,4 +495,53 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
     }
 })
 
+/*
+    Route: /users/:userid/invites/:gameid
+    Method: POST
+    Purpose: This route is used to invite a 
+        user to a given game
+    Request Parameters: 
+        userid - userid of the user you're 
+            sending the invite to
+        gameid - the game you're sending the 
+            invite for
+*/
+router.post('/:userid/invites/:gameid', async (req, res) => {
+    try {
+        
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
+/*
+    Route: /users/:userid/requests/:friendid
+    Method: DELETE
+    Purpose: This route is used to remove a 
+        friend requests from a user's friend
+        request list
+    Request Parameters: 
+        userid - userid of the user you're 
+            removing a request for
+        friendid - the name of the request
+            to be removed
+*/
+router.delete('/:userid/requests/:friendid', async (req, res) => {
+    try {
+
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
 module.exports = router
