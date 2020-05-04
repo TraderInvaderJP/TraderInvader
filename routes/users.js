@@ -71,6 +71,46 @@ router.post('/', async (req, res) => {
 })
 
 /*
+    Route: /users/list
+    Method: GET
+    Purpose: This route returns a list
+        of usernames that begin with the given
+        username segment
+    Query Parameters:
+        segment - the beginning of a username
+        limit - the number of users to retrieve
+*/
+router.get('/list', async (req, res) => {
+    try {
+        let segment = req.query.segment || ''
+        let limit = req.query.limit
+
+        const params = {
+            UserPoolId: process.env.COGNITO_POOL_ID,
+            Limit: limit || 10,
+            Filter: `username ^= \"${segment}\"`
+        }
+
+        let { Users } = await cognito.listUsers(params).promise()
+
+        Users = Users.filter(user => user.UserStatus === 'CONFIRMED').map(user => user.Username)
+
+        res.send({
+            success: true,
+            message: 'Usernames retrieved',
+            data: Users
+        })
+    }
+    catch(err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
+/*
     Route: /users/:username/verification
     Method: PUT
     Purpose: This route is used to verify a new
