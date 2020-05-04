@@ -552,6 +552,54 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
 })
 
 /*
+    Route: /users/:userid/requests/:friendid
+    Method: DELETE
+    Purpose: This route is used to remove a 
+        friend requests from a user's friend
+        request list
+    Request Parameters: 
+        userid - userid of the user you're 
+            removing a request for
+        friendid - the name of the request
+            to be removed
+*/
+router.delete('/:userid/requests/:friendid', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'requests'
+            }
+        }
+
+        const { Item } = await dynamoClient.get(params).promise()
+
+        Item.friends = Item.friends.filter(item => item.name != req.params.friendid)
+
+        params = {
+            TableName: 'Experimental',
+            Item
+        }
+
+        await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: 'Friend request deleted',
+            data: Item
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
+/*
     Route: /users/:userid/invites/:gameid
     Method: POST
     Purpose: This route is used to invite a 
@@ -665,54 +713,6 @@ router.delete('/:userid/invites/:gameid', async (req, res) => {
             success: true,
             message: 'Invite removed',
             data: {}
-        })
-    }
-    catch (err) {
-        res.send({
-            success: false,
-            message: err.message,
-            data: {}
-        })
-    }
-})
-
-/*
-    Route: /users/:userid/requests/:friendid
-    Method: DELETE
-    Purpose: This route is used to remove a 
-        friend requests from a user's friend
-        request list
-    Request Parameters: 
-        userid - userid of the user you're 
-            removing a request for
-        friendid - the name of the request
-            to be removed
-*/
-router.delete('/:userid/requests/:friendid', async (req, res) => {
-    try {
-        let params = {
-            TableName: 'Experimental',
-            Key: {
-                username: 'user#' + req.params.userid,
-                identifier: 'requests'
-            }
-        }
-
-        const { Item } = await dynamoClient.get(params).promise()
-
-        Item.friends = Item.friends.filter(item => item.name != req.params.friendid)
-
-        params = {
-            TableName: 'Experimental',
-            Item
-        }
-
-        await dynamoClient.put(params).promise()
-
-        res.send({
-            success: true,
-            message: 'Friend request deleted',
-            data: Item
         })
     }
     catch (err) {
