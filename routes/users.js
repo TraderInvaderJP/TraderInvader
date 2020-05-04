@@ -573,7 +573,30 @@ router.post('/:userid/invites/:gameid', async (req, res) => {
 */
 router.delete('/:userid/requests/:friendid', async (req, res) => {
     try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'requests'
+            }
+        }
 
+        const { Item } = await dynamoClient.get(params).promise()
+
+        Item.friends = Item.friends.filter(item => item.name != req.params.friendid)
+
+        params = {
+            TableName: 'Experimental',
+            Item
+        }
+
+        await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: 'Friend request deleted',
+            data: Item
+        })
     }
     catch (err) {
         res.send({
