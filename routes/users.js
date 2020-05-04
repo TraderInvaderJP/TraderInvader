@@ -29,42 +29,47 @@ router.post('/', async (req, res) => {
         await cognito.signUp(params).promise()
 
         params = {
-            TableName: 'Experimental',
-            Item: {
-                username: 'user#' + req.body.username,
-                identifier: 'requests',
-                friends: []
+            RequestItems: {
+                'Experimental': [
+                    {
+                        PutRequest: {
+                            Item: {
+                                username: 'user#' + req.body.username,
+                                identifier: 'requests',
+                                friends: []
+                            }
+                        }
+                    },
+                    {
+                        PutRequest: {
+                            Item: {
+                                username: 'user#' + req.body.username,
+                                identifier: 'invites',
+                                games: []
+                            }
+                        }
+                    }
+                ],
+                'PlayerStats': [
+                    {
+                        PutRequest: {
+                            Item: {
+                                username: req.body.username,
+                                Achievements: {},
+                                Statistics: {
+                                    numberOfWins: 0,
+                                    numberOfLosses: 0,
+                                    currentWinStreak: 0,
+                                    currentLossStreak: 0
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
 
-        await dynamoClient.put(params).promise()
-
-        params = {
-            TableName: 'Experimental',
-            Item: {
-                username: 'user#' + req.body.username,
-                identifier: 'invites',
-                games: []
-            }
-        }
-
-        await dynamoClient.put(params).promise()
-
-        params = {
-            TableName: 'PlayerStats',
-            Item: {
-                username: req.body.username,
-                Achievements: {},
-                Statistics: {
-                    numberOfWins: 0,
-                    numberOfLosses: 0,
-                    currentWinStreak: 0,
-                    currentLossStreak: 0
-                }
-            }
-        }
-
-        await dynamoClient.put(params).promise()
+        await dynamoClient.batchWrite(params).promise()
 
         res.send({
             success: true,
@@ -564,19 +569,14 @@ router.post('/:userid/invites/:gameid', async (req, res) => {
             Key: {
                 username: 'user#' + req.params.userid,
                 identifier: 'invites'
+            },
+            UpdateExpression: 'SET games = list_append(games, :id)',
+            ExpressionAttributeValues: {
+                ':id': [req.params.gameid]
             }
         }
 
-        const { Item } = await dynamoClient.get(params).promise()
-
-        Item.games.push(req.params.gameid)
-
-        params = {
-            TableName: 'Experimental',
-            Item
-        }
-
-        await dynamoClient.put(params).promise()
+        await dynamoClient.update(params).promise()
 
         res.send({
             success: true,
@@ -593,6 +593,15 @@ router.post('/:userid/invites/:gameid', async (req, res) => {
     }
 })
 
+/*
+    Route: /users/:userid/invites
+    Method: GET
+    Purpose: This route is used to get
+        all invites for a given user
+    Request Parameters:
+        userid - username of the user
+            whose invites you're retrieving
+*/
 router.get('/:userid/invites', async (req, res) => {
     try {
         const params = {
@@ -644,7 +653,7 @@ router.delete('/:userid/invites/:gameid', async (req, res) => {
         const { Item } = await dynamoClient.get(params).promise()
 
         Item.games = Item.games.filter(item => item != req.params.gameid)
-
+        
         params = {
             TableName: 'Experimental',
             Item
