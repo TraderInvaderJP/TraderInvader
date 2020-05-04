@@ -40,6 +40,17 @@ router.post('/', async (req, res) => {
         await dynamoClient.put(params).promise()
 
         params = {
+            TableName: 'Experimental',
+            Item: {
+                username: 'user#' + req.body.username,
+                identifier: 'invites',
+                games: []
+            }
+        }
+
+        await dynamoClient.put(params).promise()
+
+        params = {
             TableName: 'PlayerStats',
             Item: {
                 username: req.body.username,
