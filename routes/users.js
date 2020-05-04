@@ -559,7 +559,104 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
 */
 router.post('/:userid/invites/:gameid', async (req, res) => {
     try {
-        
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'invites'
+            }
+        }
+
+        const { Item } = await dynamoClient.get(params).promise()
+
+        Item.games.push(req.params.gameid)
+
+        params = {
+            TableName: 'Experimental',
+            Item
+        }
+
+        await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: 'Invite added',
+            data: {}
+        })
+    }
+    catch (err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
+router.get('/:userid/invites', async (req, res) => {
+    try {
+        const params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'invites'
+            }
+        }
+
+        const { Item } = await dynamoClient.get(params).promise()
+
+        res.send({
+            success: true,
+            message: 'Invites retrieved',
+            data: Item.games
+        })
+    }
+    catch(err) {
+        res.send({
+            success: false,
+            message: err.message,
+            data: {}
+        })
+    }
+})
+
+/*
+    Route: /users/:userid/invites/:gameid
+    Method: POST
+    Purpose: This route is used to invite a 
+        user to a given game
+    Request Parameters: 
+        userid - userid of the user you're 
+            sending the invite to
+        gameid - the game you're sending the 
+            invite for
+*/
+router.delete('/:userid/invites/:gameid', async (req, res) => {
+    try {
+        let params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.userid,
+                identifier: 'invites'
+            }
+        }
+
+        const { Item } = await dynamoClient.get(params).promise()
+
+        Item.games = Item.games.filter(item => item != req.params.gameid)
+
+        params = {
+            TableName: 'Experimental',
+            Item
+        }
+
+        await dynamoClient.put(params).promise()
+
+        res.send({
+            success: true,
+            message: 'Invite removed',
+            data: {}
+        })
     }
     catch (err) {
         res.send({
