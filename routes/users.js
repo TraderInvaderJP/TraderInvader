@@ -535,6 +535,23 @@ router.put('/:userid/friends/:friendid', async (req, res) => {
 
         data = await dynamoClient.put(params).promise()
 
+        params = {
+            TableName: 'Experimental',
+            Key: {
+                username: 'user#' + req.params.friendid,
+                identifier: 'requests'
+            },
+            UpdateExpression: 'SET friends = list_append(friends, :friend)',
+            ExpressionAttributeValues: {
+                ':friend': [{
+                    name: req.params.userid,
+                    confirmed: true
+                }]
+            }
+        }
+
+        await dynamoClient.update(params).promise()
+
         res.send({
             success: true,
             message: 'Friend confirmed',
