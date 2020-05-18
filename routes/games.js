@@ -178,12 +178,12 @@ router.get('/:gameid/info', async (req, res) => {
             
             stockData[data.symbol] = data.price
         }
-        else
+        else if(uniqueStocks.length !== 0)
         {
             const stockNames = uniqueStocks.join(',')
             const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${stockNames}`)
 
-            data.companiesPriceList.forEach(item => stockData[item.symbol] = item.price)
+            data.stockList.forEach(item => stockData[item.symbol] = item.price)
         }
 
         let scoreboard = []
