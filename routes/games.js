@@ -174,16 +174,16 @@ router.get('/:gameid/info', async (req, res) => {
         
         if(uniqueStocks.length === 1)
         {
-            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${uniqueStocks[0]}`)
+            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${uniqueStocks[0]}?apikey=${process.env.API_KEY}`)
             
             stockData[data.symbol] = data.price
         }
         else if(uniqueStocks.length !== 0)
         {
             const stockNames = uniqueStocks.join(',')
-            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${stockNames}`)
+            const { data } = await axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price/${stockNames}?apikey=${process.env.API_KEY}`)
 
-            data.stockList.forEach(item => stockData[item.symbol] = item.price)
+            data.companiesPriceList.forEach(item => stockData[item.symbol] = item.price)
         }
 
         let scoreboard = []
