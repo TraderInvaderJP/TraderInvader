@@ -3,7 +3,7 @@ const axios = require('axios')
 const dynamoClient = require('../dynamoClient')
 
 router.get('/', (req, res) => {
-    axios.get('https://financialmodelingprep.com/api/v3/stock/real-time-price')
+    axios.get(`https://financialmodelingprep.com/api/v3/stock/real-time-price?apikey=${process.env.API_KEY}`)
         .then(result => res.json(result.data))
 })
 
@@ -23,7 +23,7 @@ router.get('/:symbol', (req, res) => {
 
 /* Returns data on whether the stock market is open */
 router.get('/market/isopen', (req, res) => {
-    axios.get('https://financialmodelingprep.com/api/is-the-market-open?datatype=json')
+    axios.get(`https://financialmodelingprep.com/api/is-the-market-open?datatype=json&apikey=${process.env.API_KEY}`)
         .then(result => res.send({
             is_open: result.data.isthemarketopen
         }))
