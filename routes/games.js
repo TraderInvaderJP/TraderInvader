@@ -194,12 +194,25 @@ router.get('/:gameid/info', async (req, res) => {
 
             temp.username = item.username.split('#')[1]
 
-            Object.entries(item.stocks).forEach(stock => stockValue += stockData[stock[0]] * stock[1].count)
+            let localStocks = Object.entries(item.stocks)
+            
+            if(item.wallet === undefined)
+                item.wallet = 0
+                
+            if(localStocks.length === 0) {
+                temp.wallet = item.wallet
+                temp.portfolio = 0
+                temp.total = item.wallet
+            }
+            else {
+                localStocks.forEach(stock => stockValue += stockData[stock[0]] * stock[1].count)
 
-            temp.wallet = item.wallet
-            temp.portfolio = stockValue
-            temp.total = item.wallet + stockValue
+                temp.wallet = item.wallet
+                temp.portfolio = stockValue
+                temp.total = item.wallet + stockValue
+            }
 
+            console.log({item, temp})
             scoreboard.push(temp)
         })
 
